@@ -1,0 +1,10 @@
+[package]
+name = "rustcpu"
+version = "0.1.0"
+authors = ["Pierce Corcoran <pierce@plasticcow.com>"]
+edition = "2018"
+
+[dependencies]
+arrayref = "0.3.5"
+enum-primitive-derive = "0.1.2"
+num-traits = "^0.1"
