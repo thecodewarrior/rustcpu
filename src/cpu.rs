@@ -7,7 +7,7 @@ pub struct CPU {
     pub program: Vec<u8>,
     pub memory: Vec<u8>,
     program_counter: usize,
-    registers: [u32; 33]
+    registers: [u32; 40]
 }
 
 impl CPU {
@@ -16,7 +16,7 @@ impl CPU {
             program: Vec::new(),
             memory: Vec::new(),
             program_counter: 0,
-            registers: [0; 33]
+            registers: [0; 40]
         }
     }
 
@@ -44,10 +44,12 @@ impl CPU {
 
             // branching: 0x03xx
             0x0300 => self.insn_jump(),
-            0x0301 => self.insn_jump_cmp(),
-            0x0302 => self.insn_jump_cmp_signed(),
+            0x0301 => self.insn_jump_cmpzero(),
+            0x0302 => self.insn_jump_cmpzero_signed(),
             0x0303 => self.insn_jump_calc(),
             0x0304 => self.insn_jump_calc_signed(),
+            0x0305 => self.insn_jump_cmp(),
+            0x0306 => self.insn_jump_cmp_signed(),
 
             // debug
             0x0f00 => self.insn_debug(),
@@ -230,7 +232,7 @@ impl CPU {
         self.program_counter = dest;
     }
 
-    fn insn_jump_cmp(&mut self) {
+    fn insn_jump_cmpzero(&mut self) {
         let dest = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
         self.program_counter += 4;
         if dest > self.program.len() {
@@ -261,7 +263,7 @@ impl CPU {
         }
     }
 
-    fn insn_jump_cmp_signed(&mut self) {
+    fn insn_jump_cmpzero_signed(&mut self) {
         let dest = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
         self.program_counter += 4;
         if dest > self.program.len() {
@@ -346,6 +348,75 @@ impl CPU {
         }
     }
 
+    fn insn_jump_cmp(&mut self) {
+        let dest = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+        if dest > self.program.len() {
+            panic!("Invalid jump target 0x{:04x}", dest)
+        }
+        let cmp_op = self.program[self.program_counter];
+        self.program_counter += 1;
+
+        let lhs_reg = self.program[self.program_counter] as usize;
+        self.program_counter += 1;
+        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
+        let rhs_reg = self.program[self.program_counter] as usize;
+        self.program_counter += 1;
+        assert!((rhs_reg as usize) < self.registers.len(), "Invalid register {}", rhs_reg);
+
+        let lhs = self.registers[lhs_reg];
+        let rhs = self.registers[rhs_reg];
+
+        let should_branch = match cmp_op {
+            0 => lhs < rhs,
+            1 => lhs <= rhs,
+            2 => lhs == rhs,
+            3 => lhs >= rhs,
+            4 => lhs > rhs,
+            5 => lhs != rhs,
+            _ => {
+                panic!("Unknown comparison {}", cmp_op)
+            }
+        };
+        if should_branch {
+            self.program_counter = dest;
+        }
+    }
+
+    fn insn_jump_cmp_signed(&mut self) {
+        let dest = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+        if dest > self.program.len() {
+            panic!("Invalid jump target 0x{:04x}", dest)
+        }
+        let cmp_op = self.program[self.program_counter];
+        self.program_counter += 1;
+
+        let lhs_reg = self.program[self.program_counter] as usize;
+        self.program_counter += 1;
+        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
+        let rhs_reg = self.program[self.program_counter] as usize;
+        self.program_counter += 1;
+        assert!((rhs_reg as usize) < self.registers.len(), "Invalid register {}", rhs_reg);
+
+        let lhs = self.registers[lhs_reg] as i32;
+        let rhs = self.registers[rhs_reg] as i32;
+
+        let should_branch = match cmp_op {
+            0 => lhs < rhs,
+            1 => lhs <= rhs,
+            2 => lhs == rhs,
+            3 => lhs >= rhs,
+            4 => lhs > rhs,
+            5 => lhs != rhs,
+            _ => {
+                panic!("Unknown comparison {}", cmp_op)
+            }
+        };
+        if should_branch {
+            self.program_counter = dest;
+        }
+    }
     // debug
 
     fn insn_debug(&mut self) {

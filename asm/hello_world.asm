@@ -7,7 +7,7 @@ next_prime:
     ldc ~test, 1
 test_loop:
     calc.u ~test, add ( ~test, 1 )
-    jmpif.u success, eqz calc sub ( ~current, ~test ) ; jumpif direct comparisons coming soon
+    jmpif.u success, ( ~current, eq, ~test ) ; jumpif direct comparisons coming soon
     jmpif.u next_prime, eqz calc mod ( ~current, ~test )
     jmp test_loop
 success:

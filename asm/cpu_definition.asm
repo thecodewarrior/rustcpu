@@ -36,12 +36,12 @@
 
     #tokendef alu_cmpop
     {
-        eq = 0
-        ne = 1
-        gt = 2
-        lt = 3
-        geq = 4
-        leq = 5
+        lt = 0
+        leq = 1
+        eq = 2
+        geq = 3
+        gt = 4
+        ne = 5
     }
 
 
@@ -244,6 +244,40 @@
         0x0304 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ lhs[7:0] @ 0x20
     }
 
+    ; jump if unsigned `reg ? reg` comparison passes
+    jmpif.u {addr}, ( ~{lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
+        0x0305 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ rhs[7:0]
+    }
+
+    ; jump if unsigned `const ? reg` comparison passes
+    jmpif.u {addr}, ( {lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
+        0x0102 @ 0x20 @ lhs[31:0] @
+        0x0305 @ addr[31:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+    }
+
+    ; jump if unsigned `reg ? const` comparison passes
+    jmpif.u {addr}, ( ~{lhs}, {op: alu_cmpop}, {rhs} ) -> {
+        0x0102 @ 0x20 @ rhs[31:0] @
+        0x0305 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ 0x20
+    }
+
+    ; jump if signed `reg ? reg` comparison passes
+    jmpif.s {addr}, ( ~{lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
+        0x0306 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ rhs[7:0]
+    }
+
+    ; jump if signed `const ? reg` comparison passes
+    jmpif.s {addr}, ( {lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
+        0x0102 @ 0x20 @ lhs[31:0] @
+        0x0306 @ addr[31:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+    }
+
+    ; jump if signed `reg ? const` comparison passes
+    jmpif.s {addr}, ( ~{lhs}, {op: alu_cmpop}, {rhs} ) -> {
+        0x0102 @ 0x20 @ rhs[31:0] @
+        0x0306 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ 0x20
+    }
+
     ; dump program counter and registers
     debug -> 0x0f00
 
@@ -252,11 +286,6 @@
         0x0f01 @ reg[7:0]
     }
 
-    ; jmpif {addr}, {op: alu_cmpop} ( ~{lhs}, ~{rhs} ) -> {
-    ; }
-
-    ; jmpifn {addr}, {op: alu_cmpop} ( ~{lhs}, ~{rhs} ) -> {
-    ; }
 }
 
 R0 = 0
