@@ -1,20 +1,26 @@
 use std::{time, thread};
 
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
 use crate::memory::*;
 use std::num::Wrapping;
+use rle_vec::RleVec;
 
 pub struct CPU {
     pub program: Vec<u8>,
-    pub memory: Vec<u8>,
+    pub memory: RleVec<u8>,
     program_counter: usize,
     registers: [u32; 40]
 }
 
 impl CPU {
     pub fn new() -> CPU {
+        let mut mem: RleVec<u8> = RleVec::new();
+        mem.push_n(2048, 0);
         CPU {
             program: Vec::new(),
-            memory: Vec::new(),
+            memory: mem,
             program_counter: 0,
             registers: [0; 40]
         }
@@ -33,10 +39,15 @@ impl CPU {
             // instructions
             0x0000 => self.insn_nop(),
 
-            // load: 0x01xx
+            // load: 0x010x
             0x0100 => self.insn_load_const_u8(),
             0x0101 => self.insn_load_const_u16(),
             0x0102 => self.insn_load_const_u32(),
+            0x0103 => self.insn_load_const_mem_u8(),
+            0x0104 => self.insn_load_const_mem_u16(),
+            0x0105 => self.insn_load_const_mem_u32(),
+            0x0106 => self.insn_load_const_mem_blob(),
+            0x0107 => self.insn_load_const_mem_str(),
 
             // math: 0x02xx
             0x0200 => self.insn_calc(),
@@ -62,7 +73,7 @@ impl CPU {
             }
             _ => {
                 self.program_counter -= 2; // return the PC to its original location
-                panic!("Unknown instruction 0x{:02x}", insn)
+                panic!("Unknown instruction 0x{:02x} at 0x{:04x}", insn, self.program_counter)
             }
         }
         thread::sleep(time::Duration::from_millis(250));
@@ -106,6 +117,64 @@ impl CPU {
         self.program_counter += 4;
 
         self.registers[reg as usize] = value as u32;
+    }
+
+    fn insn_load_const_mem_u8(&mut self) {
+        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+
+        let value = self.program[self.program_counter];
+        self.program_counter += 1;
+
+        self.memory.set(addr, value);
+    }
+
+    fn insn_load_const_mem_u16(&mut self) {
+        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+
+        self.memory.set(addr, self.program[self.program_counter]);
+        self.memory.set(addr+1, self.program[self.program_counter+1]);
+
+        self.program_counter += 2;
+    }
+
+    fn insn_load_const_mem_u32(&mut self) {
+        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+
+        self.memory.set(addr, self.program[self.program_counter]);
+        self.memory.set(addr+1, self.program[self.program_counter+1]);
+        self.memory.set(addr+2, self.program[self.program_counter+2]);
+        self.memory.set(addr+3, self.program[self.program_counter+3]);
+
+        self.program_counter += 4;
+    }
+
+    fn insn_load_const_mem_blob(&mut self) {
+        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+        let loc = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+        let len = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+
+        for i in 0..len {
+            self.memory.set(addr + i, self.program[loc + i]);
+        }
+    }
+
+    fn insn_load_const_mem_str(&mut self) {
+        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
+        self.program_counter += 4;
+
+        for i in 0.. {
+            let value = self.program[self.program_counter + i];
+            self.memory.set(addr + i, value);
+            if value == 0 {
+                break;
+            }
+        }
     }
 
     // math
@@ -417,11 +486,18 @@ impl CPU {
             self.program_counter = dest;
         }
     }
+
     // debug
 
     fn insn_debug(&mut self) {
         println!("Program Counter: {}", self.program_counter);
         println!("Registers: {:?}", self.registers.to_vec());
+        println!("Dumping {} bytes of ram", self.memory.len());
+        let mut file = File::create("ram_dump");
+        match file {
+            Err(why) => { println!("couldn't open {}: {}", "ram_dump", why.description()); },
+            Ok(mut file) => { file.write_all(self.memory.to_vec().as_slice()); },
+        };
     }
 
     fn insn_debug_reg(&mut self) {

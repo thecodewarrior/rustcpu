@@ -1,6 +1,20 @@
+_tmp0 = 32
+_tmp1 = 33
+_tmp2 = 34
+_tmp3 = 35
+_tmp4 = 36
+_tmp5 = 37
+_tmp6 = 38
+_tmp7 = 39
+
 #cpudef
 {
     #bits 8
+
+    ; Value prefixes
+    ; RAM => `>___`
+    ; Register => `%___`
+    ; Program address => `@___`
 
     #tokendef alu_2op 
     {
@@ -44,7 +58,6 @@
         ne = 5
     }
 
-
     #tokendef jmp_cmp
     {
         ltz = 0
@@ -60,14 +73,52 @@
     halt -> 0xffff
 
     ; load constant into reg
-    ldc ~{reg}, {value} -> {
+    load %{reg}, {value} -> {
         assert(reg >= 0)
         assert(reg < 32)
         0x0102 @ reg[7:0] @ value[31:0]
     }
 
+    ; store constant byte in ram
+    store.b >{addr}, {value} -> {
+        0x0103 @ addr[31:0] @ value[7:0]
+    }
+
+    ; store constant short in ram
+    store.s >{addr}, {value} -> {
+        0x0104 @ addr[31:0] @ value[15:0]
+    }
+
+    ; store constant int in ram
+    store.i >{addr}, {value} -> {
+        0x0105 @ addr[31:0] @ value[31:0]
+    }
+
+    ; store constant data in ram
+    store.d >{addr}, @{loc}, {len} -> {
+        0x0106 @ addr[31:0] @ loc[31:0] @ len[31:0]
+    }
+
+    ; store constant subsequent data in ram
+    store.d >{addr}, @{end} -> {
+        start = pc + (2 + 4*3) + (2 + 4)
+        assert(end >= start)
+        len = end - start
+        0x0106 @ addr[31:0] @ start[31:0] @ len[31:0] @
+        0x0300 @ end[31:0]
+    }
+
+    ; store constant string data in ram
+    store.s >{addr} -> {
+        0x0107 @ addr[31:0]
+    }
+
+    mov.b {src}, {dest} -> {
+        0x00
+    }
+
     ; unsigned unary operation on register
-    calc.u ~{out}, {op: alu_1op} ( ~{lhs} ) -> {
+    calc.u %{out}, {op: alu_1op} ( %{lhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
@@ -76,7 +127,7 @@
     }
 
     ; unsigned `reg ? reg` operation
-    calc.u ~{out}, {op: alu_2op} ( ~{lhs}, ~{rhs} ) -> {
+    calc.u %{out}, {op: alu_2op} ( %{lhs}, %{rhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
@@ -87,29 +138,29 @@
     }
 
     ; unsigned `const ? reg` operation
-    calc.u ~{out}, {op: alu_2op} ( {lhs}, ~{rhs} ) -> {
+    calc.u %{out}, {op: alu_2op} ( {lhs}, %{rhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
         assert(rhs < 32)
         assert(rhs >= 0)
-        0x0102 @ 0x20 @ lhs[31:0] @
-        0x0200 @ out[7:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+        0x0102 @ _tmp0[7:0] @ lhs[31:0] @
+        0x0200 @ out[7:0] @ op[7:0] @ _tmp0[7:0] @ rhs[7:0]
     }
 
     ; unsigned `reg ? const` operation
-    calc.u ~{out}, {op: alu_2op} ( ~{lhs}, {rhs} ) -> {
+    calc.u %{out}, {op: alu_2op} ( %{lhs}, {rhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
         assert(lhs < 32)
         assert(rhs >= 0)
-        0x0102 @ 0x20 @ rhs[31:0] @
-        0x0200 @ out[7:0] @ op[7:0] @ lhs[7:0] @ 0x20
+        0x0102 @ _tmp0[7:0] @ rhs[31:0] @
+        0x0200 @ out[7:0] @ op[7:0] @ lhs[7:0] @ _tmp0[7:0]
     }
 
     ; signed unary operation on register
-    calc.s ~{out}, {op: alu_1op} ( ~{lhs} ) -> {
+    calc.s %{out}, {op: alu_1op} ( %{lhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
@@ -118,7 +169,7 @@
     }
 
     ; signed `reg ? reg` operation
-    calc.s ~{out}, {op: alu_2op} ( ~{lhs}, ~{rhs} ) -> {
+    calc.s %{out}, {op: alu_2op} ( %{lhs}, %{rhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
@@ -129,33 +180,33 @@
     }
 
     ; signed `const ? reg` operation
-    calc.s ~{out}, {op: alu_2op} ( {lhs}, ~{rhs} ) -> {
+    calc.s %{out}, {op: alu_2op} ( {lhs}, %{rhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(rhs < 32)
         assert(rhs >= 0)
-        0x0102 @ 0x20 @ lhs[31:0] @
-        0x0201 @ out[7:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+        0x0102 @ _tmp0[7:0] @ lhs[31:0] @
+        0x0201 @ out[7:0] @ op[7:0] @ _tmp0[7:0] @ rhs[7:0]
     }
 
     ; signed `reg ? const` operation
-    calc.s ~{out}, {op: alu_2op} ( ~{lhs}, {rhs} ) -> {
+    calc.s %{out}, {op: alu_2op} ( %{lhs}, {rhs} ) -> {
         assert(out >= 0)
         assert(out < 32)
         assert(lhs >= 0)
         assert(lhs < 32)
-        0x0102 @ 0x20 @ rhs[31:0] @
-        0x0201 @ out[7:0] @ op[7:0] @ lhs[7:0] @ 0x20
+        0x0102 @ _tmp0[7:0] @ rhs[31:0] @
+        0x0201 @ out[7:0] @ op[7:0] @ lhs[7:0] @ _tmp0[7:0]
     }
 
     ; jump to passed address/label
-    jmp {addr} -> {
+    jmp @{addr} -> {
         assert(addr >= 0)
         0x0300 @ addr[31:0]
     }
 
     ; jump if unsigned comparison against zero passes
-    jmpif.u {addr}, {cmp: jmp_cmp} ( ~{lhs} ) -> {
+    jmpif.u @{addr}, {cmp: jmp_cmp} ( %{lhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
@@ -163,7 +214,7 @@
     }
 
     ; jump if signed comparison against zero passes
-    jmpif.s {addr}, {cmp: jmp_cmp} ( ~{lhs} ) -> {
+    jmpif.s @{addr}, {cmp: jmp_cmp} ( %{lhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
@@ -171,7 +222,7 @@
     }
 
     ; jump if unsigned comparison against zero passes, using the result of an unsigned unary operation
-    jmpif.u {addr}, {cmp: jmp_cmp} calc {op: alu_1op} ( ~{lhs} ) -> {
+    jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_1op} ( %{lhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
@@ -179,7 +230,7 @@
     }
 
     ; jump if unsigned comparison against zero passes, using the result of an unsigned `reg ? reg` operation
-    jmpif.u {addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( ~{lhs}, ~{rhs} ) -> {
+    jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, %{rhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
@@ -189,27 +240,27 @@
     }
 
     ; jump if unsigned comparison against zero passes, using the result of an unsigned `const ? reg` operation
-    jmpif.u {addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( {lhs}, ~{rhs} ) -> {
+    jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( {lhs}, %{rhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(rhs >= 0)
         assert(rhs < 32)
-        0x0102 @ 0x20 @ lhs[31:0] @
-        0x0303 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+        0x0102 @ _tmp0[7:0] @ lhs[31:0] @
+        0x0303 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ _tmp0[7:0] @ rhs[7:0]
     }
 
     ; jump if unsigned comparison against zero passes, using the result of an unsigned `reg ? const` operation
-    jmpif.u {addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( ~{lhs}, {rhs} ) -> {
+    jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, {rhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
         assert(rhs >= 0)
-        0x0102 @ 0x20 @ rhs[31:0] @
-        0x0303 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ lhs[7:0] @ 0x20
+        0x0102 @ _tmp0[7:0] @ rhs[31:0] @
+        0x0303 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ lhs[7:0] @ _tmp0[7:0]
     }
 
     ; jump if signed comparison against zero passes, using the result of an signed unary operation
-    jmpif.s {addr}, {cmp: jmp_cmp} calc {op: alu_1op} ( ~{lhs} ) -> {
+    jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_1op} ( %{lhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
@@ -217,7 +268,7 @@
     }
 
     ; jump if signed comparison against zero passes, using the result of an signed `reg ? reg` operation
-    jmpif.s {addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( ~{lhs}, ~{rhs} ) -> {
+    jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, %{rhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
@@ -227,62 +278,62 @@
     }
 
     ; jump if signed comparison against zero passes, using the result of an signed `const ? reg` operation
-    jmpif.s {addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( {lhs}, ~{rhs} ) -> {
+    jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( {lhs}, %{rhs} ) -> {
         assert(addr >= 0)
         assert(rhs >= 0)
         assert(rhs < 32)
-        0x0102 @ 0x20 @ lhs[31:0] @
-        0x0304 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+        0x0102 @ _tmp0[7:0] @ lhs[31:0] @
+        0x0304 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ _tmp0[7:0] @ rhs[7:0]
     }
 
     ; jump if signed comparison against zero passes, using the result of an signed `reg ? const` operation
-    jmpif.s {addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( ~{lhs}, {rhs} ) -> {
+    jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, {rhs} ) -> {
         assert(addr >= 0)
         assert(lhs >= 0)
         assert(lhs < 32)
-        0x0102 @ 0x20 @ rhs[31:0] @
-        0x0304 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ lhs[7:0] @ 0x20
+        0x0102 @ _tmp0[7:0] @ rhs[31:0] @
+        0x0304 @ addr[31:0] @ cmp[7:0] @ op[7:0] @ lhs[7:0] @ _tmp0[7:0]
     }
 
     ; jump if unsigned `reg ? reg` comparison passes
-    jmpif.u {addr}, ( ~{lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
+    jmpif.u @{addr}, ( %{lhs}, {op: alu_cmpop}, %{rhs} ) -> {
         0x0305 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ rhs[7:0]
     }
 
     ; jump if unsigned `const ? reg` comparison passes
-    jmpif.u {addr}, ( {lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
-        0x0102 @ 0x20 @ lhs[31:0] @
-        0x0305 @ addr[31:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+    jmpif.u @{addr}, ( {lhs}, {op: alu_cmpop}, %{rhs} ) -> {
+        0x0102 @ _tmp0[7:0] @ lhs[31:0] @
+        0x0305 @ addr[31:0] @ op[7:0] @ _tmp0[7:0] @ rhs[7:0]
     }
 
     ; jump if unsigned `reg ? const` comparison passes
-    jmpif.u {addr}, ( ~{lhs}, {op: alu_cmpop}, {rhs} ) -> {
-        0x0102 @ 0x20 @ rhs[31:0] @
-        0x0305 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ 0x20
+    jmpif.u @{addr}, ( %{lhs}, {op: alu_cmpop}, {rhs} ) -> {
+        0x0102 @ _tmp0[7:0] @ rhs[31:0] @
+        0x0305 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ _tmp0[7:0]
     }
 
     ; jump if signed `reg ? reg` comparison passes
-    jmpif.s {addr}, ( ~{lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
+    jmpif.s @{addr}, ( %{lhs}, {op: alu_cmpop}, %{rhs} ) -> {
         0x0306 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ rhs[7:0]
     }
 
     ; jump if signed `const ? reg` comparison passes
-    jmpif.s {addr}, ( {lhs}, {op: alu_cmpop}, ~{rhs} ) -> {
-        0x0102 @ 0x20 @ lhs[31:0] @
-        0x0306 @ addr[31:0] @ op[7:0] @ 0x20 @ rhs[7:0]
+    jmpif.s @{addr}, ( {lhs}, {op: alu_cmpop}, %{rhs} ) -> {
+        0x0102 @ _tmp0[7:0] @ lhs[31:0] @
+        0x0306 @ addr[31:0] @ op[7:0] @ _tmp0[7:0] @ rhs[7:0]
     }
 
     ; jump if signed `reg ? const` comparison passes
-    jmpif.s {addr}, ( ~{lhs}, {op: alu_cmpop}, {rhs} ) -> {
-        0x0102 @ 0x20 @ rhs[31:0] @
-        0x0306 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ 0x20
+    jmpif.s @{addr}, ( %{lhs}, {op: alu_cmpop}, {rhs} ) -> {
+        0x0102 @ _tmp0[7:0] @ rhs[31:0] @
+        0x0306 @ addr[31:0] @ op[7:0] @ lhs[7:0] @ _tmp0[7:0]
     }
 
     ; dump program counter and registers
     debug -> 0x0f00
 
     ; print the value of the passed register
-    debug ~{reg} -> {
+    debug %{reg} -> {
         0x0f01 @ reg[7:0]
     }
 

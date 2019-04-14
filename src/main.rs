@@ -1,8 +1,10 @@
 mod memory;
+mod libs;
 mod cpu;
 
 #[macro_use]
 extern crate arrayref;
+extern crate rle_vec;
 
 use std::error::Error;
 use std::fs::File;
