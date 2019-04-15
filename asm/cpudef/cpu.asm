@@ -15,7 +15,6 @@
     ; > 0xff => ram[0xff]
     ; @ 0xff => rom[0x10]
     ; >% 3   => ram[ registers[3] ]
-    ; @% 3   => rom[ registers[3] ]
 
     ; read-write: %, >, >%
     ; read-only: @, @%

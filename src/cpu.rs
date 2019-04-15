@@ -80,6 +80,16 @@ impl CPU {
         true
     }
 
+    /// Reads a byte and validates it as a legal register index.
+    ///
+    /// Increments program counter
+    fn read_register(&mut self) -> usize {
+        let reg = self.program[self.program_counter] as usize;
+        self.program_counter += 1;
+        assert!(reg < self.registers.len(), "Invalid register {}", reg);
+        reg
+    }
+
     fn insn_nop(&mut self) {
 
     }
@@ -87,9 +97,7 @@ impl CPU {
     // load
 
     fn insn_load_const_u8(&mut self) {
-        let reg = self.program[self.program_counter];
-        self.program_counter += 1;
-        assert!((reg as usize) < self.registers.len(), "Invalid register {}", reg);
+        let reg = self.read_register();
 
         let value = self.program[self.program_counter];
         self.program_counter += 1;
@@ -98,9 +106,7 @@ impl CPU {
     }
 
     fn insn_load_const_u16(&mut self) {
-        let reg = self.program[self.program_counter];
-        self.program_counter += 1;
-        assert!((reg as usize) < self.registers.len(), "Invalid register {}", reg);
+        let reg = self.read_register();
 
         let value = to_u16_be(array_ref![self.program, self.program_counter, 2]);
         self.program_counter += 2;
@@ -109,9 +115,7 @@ impl CPU {
     }
 
     fn insn_load_const_u32(&mut self) {
-        let reg = self.program[self.program_counter];
-        self.program_counter += 1;
-        assert!((reg as usize) < self.registers.len(), "Invalid register {}", reg);
+        let reg = self.read_register();
 
         let value = to_u32_be(array_ref![self.program, self.program_counter, 4]);
         self.program_counter += 4;
@@ -120,8 +124,7 @@ impl CPU {
     }
 
     fn insn_load_const_mem_u8(&mut self) {
-        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
-        self.program_counter += 4;
+        let addr = self.registers[self.read_register()] as usize;
 
         let value = self.program[self.program_counter];
         self.program_counter += 1;
@@ -130,8 +133,7 @@ impl CPU {
     }
 
     fn insn_load_const_mem_u16(&mut self) {
-        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
-        self.program_counter += 4;
+        let addr = self.registers[self.read_register()] as usize;
 
         self.memory.set(addr, self.program[self.program_counter]);
         self.memory.set(addr+1, self.program[self.program_counter+1]);
@@ -140,8 +142,7 @@ impl CPU {
     }
 
     fn insn_load_const_mem_u32(&mut self) {
-        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
-        self.program_counter += 4;
+        let addr = self.registers[self.read_register()] as usize;
 
         self.memory.set(addr, self.program[self.program_counter]);
         self.memory.set(addr+1, self.program[self.program_counter+1]);
@@ -152,8 +153,7 @@ impl CPU {
     }
 
     fn insn_load_const_mem_blob(&mut self) {
-        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
-        self.program_counter += 4;
+        let addr = self.registers[self.read_register()] as usize;
         let loc = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
         self.program_counter += 4;
         let len = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
@@ -165,8 +165,7 @@ impl CPU {
     }
 
     fn insn_load_const_mem_str(&mut self) {
-        let addr = to_u32_be(array_ref![self.program, self.program_counter, 4]) as usize;
-        self.program_counter += 4;
+        let addr = self.registers[self.read_register()] as usize;
 
         for i in 0.. {
             let value = self.program[self.program_counter + i];
@@ -180,9 +179,7 @@ impl CPU {
     // math
 
     fn insn_calc(&mut self) {
-        let out_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((out_reg as usize) < self.registers.len(), "Invalid register {}", out_reg);
+        let out_reg = self.read_register();
 
         self.registers[out_reg] = self.calc_unsigned();
     }
@@ -190,9 +187,7 @@ impl CPU {
     fn calc_unsigned(&mut self) -> u32 {
         let op = self.program[self.program_counter];
         self.program_counter += 1;
-        let lhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
+        let lhs_reg = self.read_register();
 
         let lhs = self.registers[lhs_reg];
 
@@ -201,9 +196,7 @@ impl CPU {
             23 => !lhs,
             24 => bool_to_u32(!u32_to_bool(lhs)),
             _ => {
-                let rhs_reg = self.program[self.program_counter] as usize;
-                self.program_counter += 1;
-                assert!((rhs_reg as usize) < self.registers.len(), "Invalid register {}", rhs_reg);
+                let rhs_reg = self.read_register();
 
                 let rhs = self.registers[rhs_reg];
 
@@ -236,9 +229,7 @@ impl CPU {
     }
 
     fn insn_calc_signed(&mut self) {
-        let out_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((out_reg as usize) < self.registers.len(), "Invalid register {}", out_reg);
+        let out_reg = self.read_register();
 
         self.registers[out_reg] = self.calc_signed() as u32;
     }
@@ -246,9 +237,7 @@ impl CPU {
     fn calc_signed(&mut self) -> i32 {
         let op = self.program[self.program_counter];
         self.program_counter += 1;
-        let lhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
+        let lhs_reg = self.read_register();
 
         let lhs = self.registers[lhs_reg] as i32;
 
@@ -257,9 +246,7 @@ impl CPU {
             23 => !lhs,
             24 => bool_to_i32(!i32_to_bool(lhs)),
             _ => {
-                let rhs_reg = self.program[self.program_counter] as usize;
-                self.program_counter += 1;
-                assert!((rhs_reg as usize) < self.registers.len(), "Invalid register {}", rhs_reg);
+                let rhs_reg = self.read_register();
 
                 let rhs = self.registers[rhs_reg] as i32;
 
@@ -310,9 +297,7 @@ impl CPU {
         let cmp_op = self.program[self.program_counter];
         self.program_counter += 1;
 
-        let lhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
+        let lhs_reg = self.read_register();
 
         let lhs = self.registers[lhs_reg];
 
@@ -341,9 +326,7 @@ impl CPU {
         let cmp_op = self.program[self.program_counter];
         self.program_counter += 1;
 
-        let lhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
+        let lhs_reg = self.read_register();
 
         let lhs = self.registers[lhs_reg] as i32;
 
@@ -426,12 +409,8 @@ impl CPU {
         let cmp_op = self.program[self.program_counter];
         self.program_counter += 1;
 
-        let lhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
-        let rhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((rhs_reg as usize) < self.registers.len(), "Invalid register {}", rhs_reg);
+        let lhs_reg = self.read_register();
+        let rhs_reg = self.read_register();
 
         let lhs = self.registers[lhs_reg];
         let rhs = self.registers[rhs_reg];
@@ -461,12 +440,8 @@ impl CPU {
         let cmp_op = self.program[self.program_counter];
         self.program_counter += 1;
 
-        let lhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((lhs_reg as usize) < self.registers.len(), "Invalid register {}", lhs_reg);
-        let rhs_reg = self.program[self.program_counter] as usize;
-        self.program_counter += 1;
-        assert!((rhs_reg as usize) < self.registers.len(), "Invalid register {}", rhs_reg);
+        let lhs_reg = self.read_register();
+        let rhs_reg = self.read_register();
 
         let lhs = self.registers[lhs_reg] as i32;
         let rhs = self.registers[rhs_reg] as i32;

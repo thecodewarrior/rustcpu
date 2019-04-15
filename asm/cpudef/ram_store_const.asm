@@ -1,33 +1,75 @@
 ; store constant byte in ram
 store.b >{addr}, {value} -> {
-    0x0103 @ addr[31:0] @ value[7:0]
+    _tmp0(addr) @
+    0x0103 @ _8(_tmp0, value)
+}
+
+; store constant byte in ram
+store.b >%{addr}, {value} -> {
+    _valid_reg(addr)
+    0x0103 @ _8(addr, value)
 }
 
 ; store constant short in ram
 store.s >{addr}, {value} -> {
-    0x0104 @ addr[31:0] @ value[15:0]
+    _tmp0(addr) @
+    0x0104 @ _8(_tmp0) @ _16(value)
+}
+
+; store constant byte in ram
+store.s >%{addr}, {value} -> {
+    _valid_reg(addr)
+    0x0104 @ _8(addr) @ _16(value)
 }
 
 ; store constant int in ram
 store.i >{addr}, {value} -> {
-    0x0105 @ addr[31:0] @ value[31:0]
+    _tmp0(addr) @
+    0x0105 @ _8(_tmp0) @ _32(value)
+}
+
+; store constant byte in ram
+store.i >%{addr}, {value} -> {
+    _valid_reg(addr)
+    0x0105 @ _8(addr) @ _32(value)
 }
 
 ; store constant data in ram
 store.d >{addr}, @{loc}, {len} -> {
-    0x0106 @ addr[31:0] @ loc[31:0] @ len[31:0]
+    _tmp0(addr) @
+    0x0106 @ _8(_tmp0) @ _32(loc, len)
+}
+
+; store constant data in ram
+store.d >%{addr}, @{loc}, {len} -> {
+    _valid_reg(addr)
+    0x0106 @ _8(addr) @ _32(loc, len)
 }
 
 ; store constant subsequent data in ram
 store.d >{addr}, @{end} -> {
-    start = pc + (2 + 4*3) + (2 + 4)
-    assert(end >= start)
-    len = end - start
-    0x0106 @ addr[31:0] @ start[31:0] @ len[31:0] @
-    0x0300 @ end[31:0]
+    assert(end >= _insn_end)
+    _tmp0(addr) @
+    0x0106 @ _8(_tmp0) @ _32(_insn_end, end - _insn_end) @
+    0x0300 @ _32(end)
+}
+
+; store constant subsequent data in ram
+store.d >%{addr}, @{end} -> {
+    assert(end >= _insn_end)
+    _valid_reg(addr)
+    0x0106 @ _8(addr) @ _32(_insn_end, end - _insn_end) @
+    0x0300 @ _32(end)
 }
 
 ; store constant string data in ram
 store.s >{addr} -> {
-    0x0107 @ addr[31:0]
+    _tmp0(addr) @
+    0x0107 @ _8(_tmp0) @ _32(_insn_end)
+}
+
+; store constant string data in ram
+store.s >%{addr} -> {
+    _valid_reg(addr)
+    0x0107 @ _8(addr) @ _32(_insn_end)
 }
