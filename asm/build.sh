@@ -16,4 +16,4 @@ get_script_dir () {
 
 dir=$(get_script_dir)
 filename=$(basename $1)
-customasm -f binary -o "$dir/out/${filename%.*}" "$dir/cpu_definition.asm" $@
+customasm -f binary -o "$dir/out/${filename%.*}" "$dir/cpudef/cpu.asm" $@
