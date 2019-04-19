@@ -1,0 +1,2 @@
+TODO:
+- bit width as a modifier, not instruction-baked. For stuff like `move_block src, dest, len`, `len` may be located in memory and shouldn't need to be a 32 bit int

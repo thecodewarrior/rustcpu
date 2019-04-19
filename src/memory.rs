@@ -1,127 +1,72 @@
 #![allow(dead_code)]
 
-pub fn to_u16_be(bytes: &[u8; 2]) -> u16 {
-    0 |
-        ((bytes[0] as u16) << 8) |
-        ((bytes[1] as u16) << 0)
+use rle_vec::RleVec;
+use crate::number_type::NumberType;
+
+
+/// A sparse block of memory that provides big-endian multi-byte value access
+pub struct Memory {
+    pub data: RleVec<u8>,
 }
 
-pub fn to_u16_le(bytes: &[u8; 2]) -> u16 {
-    0 |
-        ((bytes[1] as u16) << 8) |
-        ((bytes[0] as u16) << 0)
-}
+impl Memory {
+    pub fn new(capacity: usize) -> Memory {
+        let mut data: RleVec<u8> = RleVec::new();
+        data.push_n(capacity, 0);
+        Memory {
+            data
+        }
+    }
 
-pub fn to_u24_be(bytes: &[u8; 3]) -> u32 {
-    0 |
-        ((bytes[0] as u32) << 16) |
-        ((bytes[1] as u32) <<  8) |
-        ((bytes[2] as u32) <<  0)
-}
+    pub fn get_n<N: NumberType>(&self, index: u32) -> N {
+        match N::count_zeros(N::zero()) {
+            8 => N::from_u8(self.get_8(index)),
+            16 => N::from_u16(self.get_16(index)),
+            32 => N::from_u32(self.get_32(index)),
+            _ => panic!("Unknown bit width {}", N::count_zeros(N::zero()))
+        }
+    }
 
-pub fn to_u24_le(bytes: &[u8; 3]) -> u32 {
-    0 |
-        ((bytes[2] as u32) << 16) |
-        ((bytes[1] as u32) <<  8) |
-        ((bytes[0] as u32) <<  0)
-}
+    pub fn set_n<N: NumberType>(&mut self, index: u32, value: N) {
+        match N::count_zeros(N::zero()) {
+            8 => self.set_8(index, value.as_u8()),
+            16 => self.set_16(index, value.as_u16()),
+            32 => self.set_32(index, value.as_u32()),
+            _ => panic!("Unknown bit width {}", N::count_zeros(N::zero()))
+        }
+    }
 
-pub fn to_u32_be(bytes: &[u8; 4]) -> u32 {
-    0 |
-        ((bytes[0] as u32) << 24) |
-        ((bytes[1] as u32) << 16) |
-        ((bytes[2] as u32) <<  8) |
-        ((bytes[3] as u32) <<  0)
-}
+    pub fn get_8(&self, index: u32) -> u8 {
+        self.data[index as usize]
+    }
 
-pub fn to_u32_le(bytes: &[u8; 4]) -> u32 {
-    0 |
-        ((bytes[3] as u32) << 24) |
-        ((bytes[2] as u32) << 16) |
-        ((bytes[1] as u32) <<  8) |
-        ((bytes[0] as u32) <<  0)
-}
+    pub fn set_8(&mut self, index: u32, value: u8) {
+        self.data.set(index as usize, value);
+    }
 
-pub fn to_u40_be(bytes: &[u8; 5]) -> u64 {
-    0 |
-        ((bytes[0] as u64) << 32) |
-        ((bytes[1] as u64) << 24) |
-        ((bytes[2] as u64) << 16) |
-        ((bytes[3] as u64) <<  8) |
-        ((bytes[4] as u64) <<  0)
-}
+    pub fn get_16(&self, index: u32) -> u16 {
+        0 |
+            ((self.data[(index+0) as usize] as u16) << 8) |
+            ((self.data[(index+1) as usize] as u16) << 0)
+    }
 
-pub fn to_u40_le(bytes: &[u8; 5]) -> u64 {
-    0 |
-        ((bytes[4] as u64) << 32) |
-        ((bytes[3] as u64) << 24) |
-        ((bytes[2] as u64) << 16) |
-        ((bytes[1] as u64) <<  8) |
-        ((bytes[0] as u64) <<  0)
-}
+    pub fn set_16(&mut self, index: u32, value: u16) {
+        self.data.set((index+0) as usize, (index >> 8) as u8);
+        self.data.set((index+1) as usize, (index >> 0) as u8);
+    }
 
-pub fn to_u48_be(bytes: &[u8; 6]) -> u64 {
-    0 |
-        ((bytes[0] as u64) << 40) |
-        ((bytes[1] as u64) << 32) |
-        ((bytes[2] as u64) << 24) |
-        ((bytes[3] as u64) << 16) |
-        ((bytes[4] as u64) <<  8) |
-        ((bytes[5] as u64) <<  0)
-}
+    pub fn get_32(&self, index: u32) -> u32 {
+        0 |
+            ((self.data[(index+0) as usize] as u32) << 24) |
+            ((self.data[(index+1) as usize] as u32) << 16) |
+            ((self.data[(index+2) as usize] as u32) <<  8) |
+            ((self.data[(index+3) as usize] as u32) <<  0)
+    }
 
-pub fn to_u48_le(bytes: &[u8; 6]) -> u64 {
-    0 |
-        ((bytes[5] as u64) << 40) |
-        ((bytes[4] as u64) << 32) |
-        ((bytes[3] as u64) << 24) |
-        ((bytes[2] as u64) << 16) |
-        ((bytes[1] as u64) <<  8) |
-        ((bytes[0] as u64) <<  0)
-}
-
-pub fn to_u56_be(bytes: &[u8; 7]) -> u64 {
-    0 |
-        ((bytes[0] as u64) << 48) |
-        ((bytes[1] as u64) << 40) |
-        ((bytes[2] as u64) << 32) |
-        ((bytes[3] as u64) << 24) |
-        ((bytes[4] as u64) << 16) |
-        ((bytes[5] as u64) <<  8) |
-        ((bytes[6] as u64) <<  0)
-}
-
-pub fn to_u56_le(bytes: &[u8; 7]) -> u64 {
-    0 |
-        ((bytes[6] as u64) << 48) |
-        ((bytes[5] as u64) << 40) |
-        ((bytes[4] as u64) << 32) |
-        ((bytes[3] as u64) << 24) |
-        ((bytes[2] as u64) << 16) |
-        ((bytes[1] as u64) <<  8) |
-        ((bytes[0] as u64) <<  0)
-}
-
-pub fn to_u64_be(bytes: &[u8; 8]) -> u64 {
-    0 |
-        ((bytes[0] as u64) << 56) |
-        ((bytes[1] as u64) << 48) |
-        ((bytes[2] as u64) << 40) |
-        ((bytes[3] as u64) << 32) |
-        ((bytes[4] as u64) << 24) |
-        ((bytes[5] as u64) << 16) |
-        ((bytes[6] as u64) <<  8) |
-        ((bytes[7] as u64) <<  0)
-}
-
-pub fn to_u64_le(bytes: &[u8; 8]) -> u64 {
-    0 |
-        ((bytes[7] as u64) << 56) |
-        ((bytes[6] as u64) << 48) |
-        ((bytes[5] as u64) << 40) |
-        ((bytes[4] as u64) << 32) |
-        ((bytes[3] as u64) << 24) |
-        ((bytes[2] as u64) << 16) |
-        ((bytes[1] as u64) <<  8) |
-        ((bytes[0] as u64) <<  0)
+    pub fn set_32(&mut self, index: u32, value: u32) {
+        self.data.set((index+0) as usize, (index >> 24) as u8);
+        self.data.set((index+1) as usize, (index >> 16) as u8);
+        self.data.set((index+2) as usize, (index >>  8) as u8);
+        self.data.set((index+3) as usize, (index >>  0) as u8);
+    }
 }

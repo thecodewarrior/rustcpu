@@ -1,6 +1,7 @@
 mod memory;
 mod libs;
 mod cpu;
+mod number_type;
 
 #[macro_use]
 extern crate arrayref;
@@ -12,7 +13,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::env;
 
-use cpu::*;
+use crate::cpu::*;
 
 fn main() {
     println!("Hello, world!");
@@ -24,7 +25,10 @@ fn main() {
     println!("Running script {}", args[1]);
 
     let mut cpu = CPU::new();
-    cpu.program = read_memory(&args[1]);
+    let program = read_memory(&args[1]);
+    for byte in program {
+        cpu.program.data.push(byte);
+    }
 
     cpu.run();
 }
