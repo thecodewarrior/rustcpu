@@ -1,5 +1,25 @@
-TODO:
-- bit width as a modifier, not instruction-baked. For stuff like `move_block src, dest, len`, `len` may be located in memory and shouldn't need to be a 32 bit int
+Location prefixes:
+- `'` -> constant
+- `%` -> register
+- `>` -> RAM
+- `>+` -> stack-relative RAM (stack implementation todo)
+- `@` -> ROM
+
+Combinations (`<loc> n => <reference>`):
+```
+   ' n => n
+   > n => ram[n]
+  >+ n => ram[stack_ptr + n]
+   % n => registers[n]
+  >% n => ram[registers[n]]
+ >+% n => ram[stack_ptr + registers[n]]
+   @ n => rom[n]
+  @> n => rom[ram[n]]
+ @>+ n => rom[ram[stack_ptr + n]]
+  @% n => rom[registers[n]]
+ @>% n => rom[ram[registers[n]]]
+@>+% n => rom[ram[stack_ptr + registers[n]]]
+```
 
 `<location>` = `| 8: type | 8/32: location |`
 
