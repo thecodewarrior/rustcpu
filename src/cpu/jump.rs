@@ -1,8 +1,7 @@
-
-use crate::memory::*;
 use super::*;
-use num_traits::PrimInt;
+use crate::memory::*;
 use crate::number_type::NumberType;
+use num_traits::PrimInt;
 
 impl CPU {
     pub fn insn_jump(&mut self) {
@@ -29,9 +28,7 @@ impl CPU {
             3 => lhs >= N::zero(), // >= 0
             4 => lhs > N::zero(),  //  > 0
             5 => lhs != N::zero(), // != 0
-            _ => {
-                panic!("Unknown comparison {}", cmp_op)
-            }
+            _ => panic!("Unknown comparison {}", cmp_op),
         };
         if should_branch {
             self.program_counter = dest;
@@ -54,9 +51,7 @@ impl CPU {
             3 => lhs >= N::zero(), // >= 0
             4 => lhs > N::zero(),  //  > 0
             5 => lhs != N::zero(), // != 0
-            _ => {
-                panic!("Unknown comparison {}", cmp_op)
-            }
+            _ => panic!("Unknown comparison {}", cmp_op),
         };
         if should_branch {
             self.program_counter = dest;
@@ -80,13 +75,10 @@ impl CPU {
             3 => lhs >= rhs, // >= 0
             4 => lhs > rhs,  //  > 0
             5 => lhs != rhs, // != 0
-            _ => {
-                panic!("Unknown comparison {}", cmp_op)
-            }
+            _ => panic!("Unknown comparison {}", cmp_op),
         };
         if should_branch {
             self.program_counter = dest;
         }
     }
-
 }

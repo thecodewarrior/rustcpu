@@ -1,6 +1,4 @@
-
-use crate::memory::*;
 use super::*;
+use crate::memory::*;
 
-impl CPU {
-}
+impl CPU {}

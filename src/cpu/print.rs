@@ -2,11 +2,11 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 
-use crate::memory::*;
 use super::*;
+use crate::memory::*;
+use crate::number_type::NumberType;
 use num_traits::AsPrimitive;
 use num_traits::PrimInt;
-use crate::number_type::NumberType;
 
 impl CPU {
     pub fn insn_print_block(&mut self) {

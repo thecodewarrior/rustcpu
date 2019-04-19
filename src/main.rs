@@ -1,17 +1,17 @@
-mod memory;
-mod libs;
 mod cpu;
+mod libs;
+mod memory;
 mod number_type;
 
 #[macro_use]
 extern crate arrayref;
 extern crate rle_vec;
 
+use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::env;
 
 use crate::cpu::*;
 
@@ -51,4 +51,3 @@ fn read_memory(path_str: &String) -> Vec<u8> {
 
     data
 }
-

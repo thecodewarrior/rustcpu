@@ -1,7 +1,18 @@
-use num_traits::{ PrimInt, WrappingAdd, WrappingMul, WrappingSub };
-use std::fmt::{ Debug, Display, LowerHex, UpperHex, Binary, Octal };
+use num_traits::{PrimInt, WrappingAdd, WrappingMul, WrappingSub};
+use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-pub trait NumberType: PrimInt + WrappingAdd + WrappingMul + WrappingSub + Debug + Display + LowerHex + UpperHex + Binary + Octal {
+pub trait NumberType:
+    PrimInt
+    + WrappingAdd
+    + WrappingMul
+    + WrappingSub
+    + Debug
+    + Display
+    + LowerHex
+    + UpperHex
+    + Binary
+    + Octal
+{
     fn from_isize(value: isize) -> Self;
     fn from_i8(value: i8) -> Self;
     fn from_i16(value: i16) -> Self;

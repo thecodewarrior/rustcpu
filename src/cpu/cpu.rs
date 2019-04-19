@@ -1,8 +1,8 @@
-use std::{time, thread};
+use std::{thread, time};
 
+use super::*;
 use crate::memory::*;
 use rle_vec::RleVec;
-use super::*;
 
 pub struct CPU {
     pub program: Memory,
@@ -10,7 +10,7 @@ pub struct CPU {
     pub clock: u64,
     pub(super) stack_ptr: usize,
     pub(super) program_counter: usize,
-    pub(super) registers: [u32; 40]
+    pub(super) registers: [u32; 40],
 }
 
 impl CPU {
@@ -21,7 +21,7 @@ impl CPU {
             clock: 10,
             stack_ptr: 0,
             program_counter: 0,
-            registers: [0; 40]
+            registers: [0; 40],
         }
     }
 
@@ -32,7 +32,7 @@ impl CPU {
 
     fn step(&mut self) -> bool {
         let insn = self.program.get_16(self.program_counter as u32);
-//        println!("counter: {}, 0x{:02x}", self.program_counter, insn);
+        //        println!("counter: {}, 0x{:02x}", self.program_counter, insn);
         self.program_counter += 2;
         match insn {
             // instructions
@@ -71,18 +71,19 @@ impl CPU {
             // shutdown conditions
             0xffff => {
                 println!("Halting...");
-                return false
+                return false;
             }
             _ => {
                 self.program_counter -= 2; // return the PC to its original location
-                panic!("Unknown instruction 0x{:02x} at 0x{:04x}", insn, self.program_counter)
+                panic!(
+                    "Unknown instruction 0x{:02x} at 0x{:04x}",
+                    insn, self.program_counter
+                )
             }
         }
-        thread::sleep(time::Duration::from_millis(1000/self.clock));
+        thread::sleep(time::Duration::from_millis(1000 / self.clock));
         true
     }
 
-    fn insn_nop(&mut self) {
-
-    }
+    fn insn_nop(&mut self) {}
 }

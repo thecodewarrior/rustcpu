@@ -1,9 +1,9 @@
 use std::num::Wrapping;
 
-use crate::memory::*;
 use super::*;
+use crate::memory::*;
 use crate::number_type::NumberType;
-use num_traits::{ PrimInt, WrappingAdd, WrappingMul, WrappingSub };
+use num_traits::{PrimInt, WrappingAdd, WrappingMul, WrappingSub};
 use std::fmt::Debug;
 use std::fmt::Formatter;
 
@@ -226,7 +226,7 @@ impl CPU {
                 let rom_addr = self.memory.get_32(ram_addr);
                 Location::Rom(rom_addr)
             }
-            _ => panic!("Unknown location {}", loc)
+            _ => panic!("Unknown location {}", loc),
         }
     }
 
@@ -240,7 +240,6 @@ impl CPU {
             23 => lhs.not(),
             24 => bool_to_num(!num_to_bool(lhs)),
             _ => {
-
                 let rhs = self.read_location().get_n::<N>(self);
 
                 match op {
@@ -265,7 +264,7 @@ impl CPU {
                     19 => bool_to_num(lhs < rhs),
                     20 => bool_to_num(lhs >= rhs),
                     21 => bool_to_num(lhs <= rhs),
-                    _ => panic!("Unknown arithmetic operator {}", op)
+                    _ => panic!("Unknown arithmetic operator {}", op),
                 }
             }
         }
@@ -277,5 +276,9 @@ pub fn num_to_bool<N: PrimInt>(i: N) -> bool {
 }
 
 pub fn bool_to_num<N: PrimInt>(b: bool) -> N {
-    if b { N::one() } else { N::zero() }
+    if b {
+        N::one()
+    } else {
+        N::zero()
+    }
 }

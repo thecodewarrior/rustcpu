@@ -1,6 +1,5 @@
-
-use crate::memory::*;
 use super::*;
+use crate::memory::*;
 use crate::number_type::NumberType;
 
 impl CPU {
