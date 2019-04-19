@@ -2,6 +2,6 @@
 debug => 0x0f00
 
 ; print the value of the passed register
-debug %{reg} => {
-    0x0f01 @ _8(reg)
+debug {loc: read_location} {data} => {
+    0x0f01 @ _location(loc, data)
 }

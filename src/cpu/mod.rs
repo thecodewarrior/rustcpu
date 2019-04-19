@@ -5,6 +5,7 @@ pub(self) mod jump;
 pub(self) mod math;
 pub(self) mod mov;
 pub(self) mod store_const;
+pub(self) mod print;
 
 pub use self::cpu::CPU;
 pub(self) use self::common::*;

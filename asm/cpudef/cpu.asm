@@ -29,9 +29,9 @@
     halt => 0xffff
 
     #include "_functions.asm"
-    #include "store_const.asm"
     #include "move.asm"
     #include "math.asm"
     #include "jump.asm"
     #include "debug.asm"
+    #include "print.asm"
 }

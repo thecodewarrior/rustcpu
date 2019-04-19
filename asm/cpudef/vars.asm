@@ -39,3 +39,11 @@ R28 = 28
 R29 = 29
 R30 = 30
 R31 = 31
+
+
+_location_const = 0b000
+_location_ram = 0b001
+_location_stack_ram = 0b010
+_location_register = 0b011
+_location_ram_at_register = 0b100
+_location_stack_ram_at_register = 0b101

@@ -7,6 +7,7 @@ use super::*;
 pub struct CPU {
     pub program: Memory,
     pub memory: Memory,
+    pub clock: u64,
     pub(super) stack_ptr: usize,
     pub(super) program_counter: usize,
     pub(super) registers: [u32; 40]
@@ -17,6 +18,7 @@ impl CPU {
         CPU {
             program: Memory::new(0),
             memory: Memory::new(2048),
+            clock: 10,
             stack_ptr: 0,
             program_counter: 0,
             registers: [0; 40]
@@ -40,6 +42,8 @@ impl CPU {
             0x0100 => self.insn_move::<u8>(),
             0x0101 => self.insn_move::<u16>(),
             0x0102 => self.insn_move::<u32>(),
+            0x0103 => self.insn_move_block(),
+            0x0104 => self.insn_move_str(),
 
             // math: 0x02xx
             0x0200 => self.insn_calc::<u32>(),
@@ -53,6 +57,12 @@ impl CPU {
             0x0304 => self.insn_jump_calc::<i32>(),
             0x0305 => self.insn_jump_cmp::<u32>(),
             0x0306 => self.insn_jump_cmp::<i32>(),
+
+            0x0400 => self.insn_print_value::<u32>(),
+            0x0401 => self.insn_print_value::<i32>(),
+            0x0402 => self.insn_print_block(),
+            0x0403 => self.insn_print_str(),
+            0x0404 => self.insn_print_nl(),
 
             // debug
             0x0f00 => self.insn_debug(),
@@ -68,7 +78,7 @@ impl CPU {
                 panic!("Unknown instruction 0x{:02x} at 0x{:04x}", insn, self.program_counter)
             }
         }
-        thread::sleep(time::Duration::from_millis(250));
+        thread::sleep(time::Duration::from_millis(1000/self.clock));
         true
     }
 

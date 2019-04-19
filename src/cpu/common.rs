@@ -24,6 +24,7 @@ use std::fmt::Formatter;
 /// - `0b1010` = @%
 /// - `0b1011` = @>%
 /// - `0b1100` = @>+%
+#[derive(PartialEq, Eq)]
 pub enum Location {
     Constant(u32),
     Ram(u32),

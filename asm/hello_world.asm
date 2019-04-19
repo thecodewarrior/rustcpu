@@ -1,35 +1,41 @@
-move8 >+0x00 <- '100
-move16 >0x02 <- '200
-move32 >0x08 <- '300
+current = 0
+testi = 1
 
-store.bytes >0x10 <- @d1, d1_len
-store.bytes >0x30 <- @s_end
-    #str "Such inline, many cool\0"
-s_end:
+move32 '2 -> >0
+move8 '1 -> %current
 
-store.string >0x40 <- 
-    #str "Such inline, many cool\0"
-debug
-halt
-
-d1:
-    #str "Wow much cool\0"
-d1_len = pc - d1
-
-
-current = R0
-test = R1
-
-load %current <- 1
 next_prime:
-    calc.u %current <- add ( %current, 1 )
-    load %test <- 1
+    calc.u add (%current, '1) -> %current
+    move8 '0 -> %testi
+
+    print_str
+    #str "Testing \0"
+    print.u %current
+    print_str
+    #str ": \0"
+
 test_loop:
-    calc.u %test <- add ( %test, 1 )
-    jmpif.u @success, ( %current, eq, %test ) ; jumpif direct comparisons coming soon
-    jmpif.u @next_prime, eqz calc mod ( %current, %test )
-    jmp @test_loop
+    jumpif.u eqz ( >%testi ) -> 'success
+
+    jumpif.u eqz ( %testi ) -> '.after_comma
+    print_str
+    #str ", \0"
+    .after_comma:
+    print.u >%testi
+
+    jumpif.u eqz calc mod (%current, >%testi) -> 'failure
+    calc.u add (%testi, '4) -> %testi
+    jump 'test_loop
+
+failure:
+    print_nl
+    jump 'next_prime
+
 success:
-    debug %current
-    jmp @next_prime
+    print_str
+    #str " - prime\0"
+    print_nl
+
+    move32 %current -> >%testi
+    jump 'next_prime
 halt

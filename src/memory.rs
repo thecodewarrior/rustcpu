@@ -51,8 +51,8 @@ impl Memory {
     }
 
     pub fn set_16(&mut self, index: u32, value: u16) {
-        self.data.set((index+0) as usize, (index >> 8) as u8);
-        self.data.set((index+1) as usize, (index >> 0) as u8);
+        self.data.set((index+0) as usize, (value >> 8) as u8);
+        self.data.set((index+1) as usize, (value >> 0) as u8);
     }
 
     pub fn get_32(&self, index: u32) -> u32 {
@@ -64,9 +64,9 @@ impl Memory {
     }
 
     pub fn set_32(&mut self, index: u32, value: u32) {
-        self.data.set((index+0) as usize, (index >> 24) as u8);
-        self.data.set((index+1) as usize, (index >> 16) as u8);
-        self.data.set((index+2) as usize, (index >>  8) as u8);
-        self.data.set((index+3) as usize, (index >>  0) as u8);
+        self.data.set((index+0) as usize, (value >> 24) as u8);
+        self.data.set((index+1) as usize, (value >> 16) as u8);
+        self.data.set((index+2) as usize, (value >>  8) as u8);
+        self.data.set((index+3) as usize, (value >>  0) as u8);
     }
 }

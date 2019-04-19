@@ -65,13 +65,6 @@
 #fun _tmp6(value) => _set_reg(_tmp6, value)
 #fun _tmp7(value) => _set_reg(_tmp7, value)
 
-_location_const = 0b000
-_location_ram = 0b001
-_location_stack_ram = 0b010
-_location_register = 0b011
-_location_ram_at_register = 0b100
-_location_stack_ram_at_register = 0b101
-
 #tokendef read_location {
     '    : 0b0000
     >    : 0b0001
@@ -115,6 +108,15 @@ _location_stack_ram_at_register = 0b101
     >+%  : 0b0101
 }
 
+#tokendef not_rom_location {
+    '    : 0b0000
+    >    : 0b0001
+    >+   : 0b0010
+    %    : 0b0011
+    >%   : 0b0100
+    >+%  : 0b0101
+}
+
 #fun _location(loc, value) => {
     assert(loc >= 0)
     assert(loc <= 6)
@@ -126,29 +128,4 @@ _location_stack_ram_at_register = 0b101
             _8(value) 
         }
     }
-}
-
-#fun _locations(loc1, value1, loc2, value2) => {
-    _location(loc1, value1) @ _location(loc2, value2)
-    ; assert(loc1 >= 0)
-    ; assert(loc1 <= 6)
-    ; assert(loc2 >= 0)
-    ; assert(loc2 <= 6)
-
-    ; _4(loc1, loc2) @ { 
-    ;     loc1 < 3 ? { 
-    ;         _32(value1) 
-    ;     }:{
-    ;         _valid_reg(value1)
-    ;         _32(value1) 
-    ;     }
-    ; }
-}
-
-#fun _locations(loc1, value1, loc2, value2, loc3, value3) => {
-    _location(loc1, value1) @ _location(loc2, value2) @ _location(loc3, value3)
-}
-
-#fun _locations(loc1, value1, loc2, value2, loc3, value3, loc4, value4) => {
-    _location(loc1, value1) @ _location(loc2, value2) @ _location(loc3, value3) @ _location(loc4, value4)
 }

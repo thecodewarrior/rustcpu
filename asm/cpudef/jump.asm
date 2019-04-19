@@ -1,4 +1,4 @@
-#tokendef jmp_cmp
+#tokendef jump_cmpz
 {
     ltz : 0
     lez : 1
@@ -8,132 +8,57 @@
     nez : 5
 }
 
-; jump to passed address/label
-jmp @{addr} => {
-    assert(addr >= 0)
-    0x0300 @ _32(addr)
+#tokendef jump_cmp
+{
+    lt  : 0
+    leq : 1
+    eq  : 2
+    geq : 3
+    gt  : 4
+    neq : 5
+}
+
+; jump to passed address
+jump {target_loc: not_rom_location} {target} => {
+    0x0300 @ _location(target_loc, target)
 }
 
 ; jump if unsigned comparison against zero passes
-jmpif.u @{addr}, {cmp: jmp_cmp} ( %{lhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    0x0301 @ _32(addr) @ _8(cmp) @ _8(lhs) 
+jumpif.u {cmp: jump_cmpz} ( {value_loc: read_location} {value} ) -> {target_loc: not_rom_location} {target} => {
+    0x0301 @ _location(target_loc, target) @ _8(cmp) @ _location(value_loc, value)
 }
 
 ; jump if signed comparison against zero passes
-jmpif.s @{addr}, {cmp: jmp_cmp} ( %{lhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    0x0302 @ _32(addr) @ _8(cmp) @ _8(lhs) 
+jumpif.s {cmp: jump_cmpz} ( {value_loc: read_location} {value} ) -> {target_loc: not_rom_location} {target} => {
+    0x0302 @ _location(target_loc, target) @ _8(cmp) @ _location(value_loc, value)
 }
 
 ; jump if unsigned comparison against zero passes, using the result of an unsigned unary operation
-jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_1op} ( %{lhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    0x0302 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(lhs) 
+jumpif.u {cmp: jump_cmpz} calc {op: alu_1op} ( {value_loc: read_location} {value} ) -> {target_loc: not_rom_location} {target} => {
+    0x0303 @ _location(target_loc, target) @ _8(cmp) @ _8(op) @ _location(value_loc, value)
 }
 
-; jump if unsigned comparison against zero passes, using the result of an unsigned `reg ? reg` operation
-jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, %{rhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    assert(rhs >= 0)
-    assert(rhs < 32)
-    0x0303 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(lhs) @ _8(rhs)
+; jump if unsigned comparison against zero passes, using the result of an signed unary operation
+jumpif.s {cmp: jump_cmpz} calc {op: alu_1op} ( {value_loc: read_location} {value} ) -> {target_loc: not_rom_location} {target} => {
+    0x0304 @ _location(target_loc, target) @ _8(cmp) @ _8(op) @ _location(value_loc, value)
 }
 
-; jump if unsigned comparison against zero passes, using the result of an unsigned `const ? reg` operation
-jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( {lhs}, %{rhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(rhs >= 0)
-    assert(rhs < 32)
-    0x0102 @ _8(_tmp0) @ _32(lhs) @
-    0x0303 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(_tmp0) @ _8(rhs)
+; jump if unsigned comparison against zero passes, using the result of an unsigned binary operation
+jumpif.u {cmp: jump_cmpz} calc {op: alu_2op} ( {lhs_loc: read_location} {lhs}, {rhs_loc: read_location} {rhs} ) -> {target_loc: not_rom_location} {target} => {
+    0x0303 @ _location(target_loc, target) @ _8(cmp) @ _8(op) @ _location(lhs_loc, lhs) @ _location(rhs_loc, rhs)
 }
 
-; jump if unsigned comparison against zero passes, using the result of an unsigned `reg ? const` operation
-jmpif.u @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, {rhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    assert(rhs >= 0)
-    0x0102 @ _8(_tmp0) @ _32(rhs) @
-    0x0303 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(lhs) @ _8(_tmp0)
+; jump if signed comparison against zero passes, using the result of an signed binary operation
+jumpif.s {cmp: jump_cmpz} calc {op: alu_2op} ( {lhs_loc: read_location} {lhs}, {rhs_loc: read_location} {rhs} ) -> {target_loc: not_rom_location} {target} => {
+    0x0304 @ _location(target_loc, target) @ _8(cmp) @ _8(op) @ _location(lhs_loc, lhs) @ _location(rhs_loc, rhs)
 }
 
-; jump if signed comparison against zero passes, using the result of an signed unary operation
-jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_1op} ( %{lhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    0x0304 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(lhs) 
+; jump if unsigned comparison passes
+jumpif.u ( {lhs_loc: read_location} {lhs}, {cmp: jump_cmp}, {rhs_loc: read_location} {rhs} ) -> {target_loc: not_rom_location} {target} => {
+    0x0305 @ _location(target_loc, target) @ _8(cmp) @ _location(lhs_loc, lhs) @ _location(rhs_loc, rhs)
 }
 
-; jump if signed comparison against zero passes, using the result of an signed `reg ? reg` operation
-jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, %{rhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    assert(rhs >= 0)
-    assert(rhs < 32)
-    0x0304 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(lhs) @ _8(rhs)
-}
-
-; jump if signed comparison against zero passes, using the result of an signed `const ? reg` operation
-jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( {lhs}, %{rhs} ) => {
-    assert(addr >= 0)
-    assert(rhs >= 0)
-    assert(rhs < 32)
-    0x0102 @ _8(_tmp0) @ _32(lhs) @
-    0x0304 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(_tmp0) @ _8(rhs)
-}
-
-; jump if signed comparison against zero passes, using the result of an signed `reg ? const` operation
-jmpif.s @{addr}, {cmp: jmp_cmp} calc {op: alu_2op} ( %{lhs}, {rhs} ) => {
-    assert(addr >= 0)
-    assert(lhs >= 0)
-    assert(lhs < 32)
-    0x0102 @ _8(_tmp0) @ _32(rhs) @
-    0x0304 @ _32(addr) @ _8(cmp) @ _8(op) @ _8(lhs) @ _8(_tmp0)
-}
-
-; jump if unsigned `reg ? reg` comparison passes
-jmpif.u @{addr}, ( %{lhs}, {op: alu_cmpop}, %{rhs} ) => {
-    0x0305 @ _32(addr) @ _8(op) @ _8(lhs) @ _8(rhs)
-}
-
-; jump if unsigned `const ? reg` comparison passes
-jmpif.u @{addr}, ( {lhs}, {op: alu_cmpop}, %{rhs} ) => {
-    0x0102 @ _8(_tmp0) @ _32(lhs) @
-    0x0305 @ _32(addr) @ _8(op) @ _8(_tmp0) @ _8(rhs)
-}
-
-; jump if unsigned `reg ? const` comparison passes
-jmpif.u @{addr}, ( %{lhs}, {op: alu_cmpop}, {rhs} ) => {
-    0x0102 @ _8(_tmp0) @ _32(rhs) @
-    0x0305 @ _32(addr) @ _8(op) @ _8(lhs) @ _8(_tmp0)
-}
-
-; jump if signed `reg ? reg` comparison passes
-jmpif.s @{addr}, ( %{lhs}, {op: alu_cmpop}, %{rhs} ) => {
-    0x0306 @ _32(addr) @ _8(op) @ _8(lhs) @ _8(rhs)
-}
-
-; jump if signed `const ? reg` comparison passes
-jmpif.s @{addr}, ( {lhs}, {op: alu_cmpop}, %{rhs} ) => {
-    0x0102 @ _8(_tmp0) @ _32(lhs) @
-    0x0306 @ _32(addr) @ _8(op) @ _8(_tmp0) @ _8(rhs)
-}
-
-; jump if signed `reg ? const` comparison passes
-jmpif.s @{addr}, ( %{lhs}, {op: alu_cmpop}, {rhs} ) => {
-    0x0102 @ _8(_tmp0) @ _32(rhs) @
-    0x0306 @ _32(addr) @ _8(op) @ _8(lhs) @ _8(_tmp0)
+; jump if signed comparison passes
+jumpif.s ( {lhs_loc: read_location} {lhs}, {cmp: jump_cmp}, {rhs_loc: read_location} {rhs} ) -> {target_loc: not_rom_location} {target} => {
+    0x0306 @ _location(target_loc, target) @ _8(cmp) @ _location(lhs_loc, lhs) @ _location(rhs_loc, rhs)
 }
