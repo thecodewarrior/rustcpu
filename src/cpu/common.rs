@@ -3,9 +3,10 @@ use std::num::Wrapping;
 use super::*;
 use crate::memory::*;
 use crate::number_type::NumberType;
-use num_traits::{PrimInt, WrappingAdd, WrappingMul, WrappingSub};
+use num_traits::PrimInt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use failure::Error;
 
 /// - `'_____` = Constant
 /// - `>_____` = RAM
@@ -53,12 +54,12 @@ impl Location {
         }
     }
 
-    pub fn set_n<N: NumberType>(&self, cpu: &mut CPU, value: N) {
+    pub fn set_n<N: NumberType>(&self, cpu: &mut CPU, value: N) -> Result<(), Error> {
         match self {
-            Location::Constant(value) => panic!("can't set the value of a constant"),
-            Location::Ram(addr) => cpu.memory.set_n(*addr, value),
-            Location::Rom(addr) => cpu.program.set_n(*addr, value),
-            Location::Register(reg) => cpu.registers[*reg as usize] = value.as_u32(),
+            Location::Constant(_) => bail!("Can't set a constant to value"),
+            Location::Ram(addr) => Ok(cpu.memory.set_n(*addr, value)),
+            Location::Rom(addr) => Ok(cpu.program.set_n(*addr, value)),
+            Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value.as_u32()),
         }
     }
 
@@ -71,12 +72,12 @@ impl Location {
         }
     }
 
-    pub fn set_8(&self, cpu: &mut CPU, value: u8) {
+    pub fn set_8(&self, cpu: &mut CPU, value: u8) -> Result<(), Error> {
         match self {
-            Location::Constant(value) => panic!("can't set the value of a constant"),
-            Location::Ram(addr) => cpu.memory.set_8(*addr, value),
-            Location::Rom(addr) => cpu.program.set_8(*addr, value),
-            Location::Register(reg) => cpu.registers[*reg as usize] = value as u32,
+            Location::Constant(_) => bail!("Can't set a constant to value"),
+            Location::Ram(addr) => Ok(cpu.memory.set_8(*addr, value)),
+            Location::Rom(addr) => Ok(cpu.program.set_8(*addr, value)),
+            Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value as u32),
         }
     }
 
@@ -89,12 +90,12 @@ impl Location {
         }
     }
 
-    pub fn set_16(&self, cpu: &mut CPU, value: u16) {
+    pub fn set_16(&self, cpu: &mut CPU, value: u16) -> Result<(), Error> {
         match self {
-            Location::Constant(value) => panic!("can't set the value of a constant"),
-            Location::Ram(addr) => cpu.memory.set_16(*addr, value),
-            Location::Rom(addr) => cpu.program.set_16(*addr, value),
-            Location::Register(reg) => cpu.registers[*reg as usize] = value as u32,
+            Location::Constant(_) => bail!("Can't set a constant to value"),
+            Location::Ram(addr) => Ok(cpu.memory.set_16(*addr, value)),
+            Location::Rom(addr) => Ok(cpu.program.set_16(*addr, value)),
+            Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value as u32),
         }
     }
 
@@ -107,30 +108,30 @@ impl Location {
         }
     }
 
-    pub fn set_32(&self, cpu: &mut CPU, value: u32) {
+    pub fn set_32(&self, cpu: &mut CPU, value: u32) -> Result<(), Error> {
         match self {
-            Location::Constant(value) => panic!("can't set the value of a constant"),
-            Location::Ram(addr) => cpu.memory.set_32(*addr, value),
-            Location::Rom(addr) => cpu.program.set_32(*addr, value),
-            Location::Register(reg) => cpu.registers[*reg as usize] = value,
+            Location::Constant(_) => bail!("Can't set a constant to value"),
+            Location::Ram(addr) => Ok(cpu.memory.set_32(*addr, value)),
+            Location::Rom(addr) => Ok(cpu.program.set_32(*addr, value)),
+            Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value),
         }
     }
 
-    pub fn get_offset(&self, cpu: &CPU, offset: u32) -> u8 {
+    pub fn get_offset(&self, cpu: &CPU, offset: u32) -> Result<u8, Error> {
         match self {
-            Location::Constant(value) => panic!("Cannot get a constant with an offset"),
-            Location::Ram(addr) => cpu.memory.get_8(*addr + offset),
-            Location::Rom(addr) => cpu.program.get_8(*addr + offset),
-            Location::Register(reg) => panic!("Cannot get a register with an offset"),
+            Location::Constant(_) => bail!("Can't get a constant with an offset"),
+            Location::Ram(addr) => Ok(cpu.memory.get_8(*addr + offset)),
+            Location::Rom(addr) => Ok(cpu.program.get_8(*addr + offset)),
+            Location::Register(_) => bail!("Can't get a register with an offset"),
         }
     }
 
-    pub fn set_offset(&self, cpu: &mut CPU, offset: u32, value: u8) {
+    pub fn set_offset(&self, cpu: &mut CPU, offset: u32, value: u8) -> Result<(), Error> {
         match self {
-            Location::Constant(value) => panic!("can't set the value of a constant"),
-            Location::Ram(addr) => cpu.memory.set_8(*addr + offset, value),
-            Location::Rom(addr) => cpu.program.set_8(*addr + offset, value),
-            Location::Register(reg) => panic!("Cannot set a register with an offset"),
+            Location::Constant(_) => bail!("Can't set a constant to value"),
+            Location::Ram(addr) => Ok(cpu.memory.set_8(*addr + offset, value)),
+            Location::Rom(addr) => Ok(cpu.program.set_8(*addr + offset, value)),
+            Location::Register(_) => bail!("Can't set a register with an offset"),
         }
     }
 }
@@ -157,18 +158,18 @@ impl CPU {
     /// Reads a byte and validates it as a legal register index.
     ///
     /// Increments program counter
-    fn read_register(&mut self) -> usize {
+    fn read_register(&mut self) -> Result<usize, Error> {
         let reg = self.read_8() as usize;
-        assert!(reg < self.registers.len(), "Invalid register {}", reg);
-        reg
+        ensure!(reg < self.registers.len(), "Invalid register {}", reg);
+        Ok(reg)
     }
 
     /// Reads a single value reference from the program
     ///
-    pub fn read_location(&mut self) -> Location {
+    pub fn read_location(&mut self) -> Result<Location, Error> {
         let loc = self.read_8();
         let stack = self.stack_ptr as u32;
-        match loc {
+        Ok(match loc {
             0b0000 => {
                 let value = self.read_32();
                 Location::Constant(value)
@@ -182,16 +183,16 @@ impl CPU {
                 Location::Ram(addr)
             }
             0b0011 => {
-                let reg = self.read_register() as u32;
+                let reg = self.read_register()? as u32;
                 Location::Register(reg)
             }
             0b0100 => {
-                let reg = self.read_register();
+                let reg = self.read_register()?;
                 let addr = self.registers[reg];
                 Location::Ram(addr)
             }
             0b0101 => {
-                let reg = self.read_register();
+                let reg = self.read_register()?;
                 let addr = stack + self.registers[reg];
                 Location::Ram(addr)
             }
@@ -202,7 +203,7 @@ impl CPU {
             0b1000 => {
                 let ram_addr = self.read_32();
                 let rom_addr = self.memory.get_32(ram_addr);
-                Location::Rom(ram_addr)
+                Location::Rom(rom_addr)
             }
             0b1001 => {
                 let ram_addr = stack + self.read_32();
@@ -210,44 +211,52 @@ impl CPU {
                 Location::Rom(rom_addr)
             }
             0b1010 => {
-                let reg = self.read_register();
+                let reg = self.read_register()?;
                 let addr = self.registers[reg];
                 Location::Rom(addr)
             }
             0b1011 => {
-                let reg = self.read_register();
+                let reg = self.read_register()?;
                 let ram_addr = self.registers[reg];
                 let rom_addr = self.memory.get_32(ram_addr);
                 Location::Rom(rom_addr)
             }
             0b1100 => {
-                let reg = self.read_register();
+                let reg = self.read_register()?;
                 let ram_addr = stack + self.registers[reg];
                 let rom_addr = self.memory.get_32(ram_addr);
                 Location::Rom(rom_addr)
             }
-            _ => panic!("Unknown location {}", loc),
-        }
+            _ => bail!("Unknown location {}", loc),
+        })
     }
 
-    pub fn calc<N: NumberType>(&mut self) -> N {
+    pub fn calc<N: NumberType>(&mut self) -> Result<N, Error> {
         let op = self.read_8();
 
-        let lhs = self.read_location().get_n::<N>(self);
+        let lhs = self.read_location()?.get_n::<N>(self);
 
-        match op {
+        Ok(match op {
             22 => N::zero().sub(lhs),
             23 => lhs.not(),
             24 => bool_to_num(!num_to_bool(lhs)),
             _ => {
-                let rhs = self.read_location().get_n::<N>(self);
+                let rhs = self.read_location()?.get_n::<N>(self);
 
                 match op {
                     0 => lhs.wrapping_add(&rhs),
                     1 => lhs.wrapping_sub(&rhs),
                     2 => lhs.wrapping_mul(&rhs),
-                    3 => lhs.div(rhs),
-                    4 => lhs.rem(rhs),
+                    3 => if rhs == N::zero() {
+                        bail!("Divide by zero")
+                    } else {
+                        lhs.div(rhs)
+                    },
+                    4 => if rhs == N::zero() {
+                        bail!("Remainder by zero")
+                    } else {
+                        lhs.rem(rhs)
+                    },
                     6 => lhs.shl(rhs.as_usize()),
                     7 => lhs.shr(rhs.as_usize()),
                     8 => lhs.rotate_left(rhs.as_u32()),
@@ -267,7 +276,7 @@ impl CPU {
                     _ => panic!("Unknown arithmetic operator {}", op),
                 }
             }
-        }
+        })
     }
 }
 

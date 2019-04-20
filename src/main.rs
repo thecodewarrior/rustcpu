@@ -3,12 +3,11 @@ mod libs;
 mod memory;
 mod number_type;
 
-#[macro_use]
-extern crate arrayref;
+#[macro_use] extern crate arrayref;
+#[macro_use] extern crate failure;
 extern crate rle_vec;
 
 use std::env;
-use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -39,13 +38,13 @@ fn read_memory(path_str: &String) -> Vec<u8> {
     let display = path.display();
 
     let mut file = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {}", display, why.description()),
+        Err(why) => panic!("couldn't open {}: {}", display, why.to_string()),
         Ok(file) => file,
     };
 
     let mut data: Vec<u8> = Vec::new();
     match file.read_to_end(&mut data) {
-        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
+        Err(why) => panic!("couldn't read {}: {}", display, why.to_string()),
         Ok(_) => println!("read {} bytes from {}", data.len(), display),
     }
 

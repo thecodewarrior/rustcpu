@@ -3,6 +3,8 @@ use std::{thread, time};
 use super::*;
 use crate::memory::*;
 use rle_vec::RleVec;
+use failure::Error;
+use failure::Fail;
 
 pub struct CPU {
     pub program: Memory,
@@ -27,14 +29,24 @@ impl CPU {
 
     pub fn run(&mut self) {
         println!("Booting up...");
-        while self.step() {}
+        loop {
+            match self.step() {
+                Ok(true) => break,
+                Ok(false) => {},
+                Err(err) => {
+                    println!("Error!\n{:?}", err);
+                    break
+                }
+            }
+        }
     }
 
-    fn step(&mut self) -> bool {
+    fn step(&mut self) -> Result<bool, Error> {
+        let insn_loc = self.program_counter;
         let insn = self.program.get_16(self.program_counter as u32);
         //        println!("counter: {}, 0x{:02x}", self.program_counter, insn);
         self.program_counter += 2;
-        match insn {
+        let insn_result = match insn {
             // instructions
             0x0000 => self.insn_nop(),
 
@@ -71,19 +83,22 @@ impl CPU {
             // shutdown conditions
             0xffff => {
                 println!("Halting...");
-                return false;
+                return Ok(true);
             }
             _ => {
                 self.program_counter -= 2; // return the PC to its original location
-                panic!(
-                    "Unknown instruction 0x{:02x} at 0x{:04x}",
-                    insn, self.program_counter
-                )
+                Err(format_err!("Unknown opcode"))
             }
+        };
+        match insn_result {
+            Ok(_) => {}
+            Err(err) => return Err(err.context(format!("Error occured on instruction 0x{:04x} at 0x{:x}", insn, insn_loc)).into())
         }
         thread::sleep(time::Duration::from_millis(1000 / self.clock));
-        true
+        Ok(false)
     }
 
-    fn insn_nop(&mut self) {}
+    fn insn_nop(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 }

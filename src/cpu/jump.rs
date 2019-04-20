@@ -2,24 +2,26 @@ use super::*;
 use crate::memory::*;
 use crate::number_type::NumberType;
 use num_traits::PrimInt;
+use failure::Error;
 
 impl CPU {
-    pub fn insn_jump(&mut self) {
-        let dest = self.read_location().get_32(self) as usize;
+    pub fn insn_jump(&mut self) -> Result<(), Error> {
+        let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
             panic!("Invalid jump target 0x{:04x}", dest)
         }
         self.program_counter = dest;
+        Ok(())
     }
 
-    pub fn insn_jump_cmpzero<N: NumberType>(&mut self) {
-        let dest = self.read_location().get_32(self) as usize;
+    pub fn insn_jump_cmpzero<N: NumberType>(&mut self) -> Result<(), Error> {
+        let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
             panic!("Invalid jump target 0x{:04x}", dest)
         }
         let cmp_op = self.read_8();
 
-        let lhs = self.read_location().get_n::<N>(self);
+        let lhs = self.read_location()?.get_n::<N>(self);
 
         let should_branch = match cmp_op {
             0 => lhs < N::zero(),  //  < 0
@@ -33,16 +35,17 @@ impl CPU {
         if should_branch {
             self.program_counter = dest;
         }
+        Ok(())
     }
 
-    pub fn insn_jump_calc<N: NumberType>(&mut self) {
-        let dest = self.read_location().get_32(self) as usize;
+    pub fn insn_jump_calc<N: NumberType>(&mut self) -> Result<(), Error> {
+        let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
             panic!("Invalid jump target 0x{:04x}", dest)
         }
         let cmp_op = self.read_8();
 
-        let lhs = self.calc::<N>();
+        let lhs = self.calc::<N>()?;
 
         let should_branch = match cmp_op {
             0 => lhs < N::zero(),  //  < 0
@@ -56,17 +59,18 @@ impl CPU {
         if should_branch {
             self.program_counter = dest;
         }
+        Ok(())
     }
 
-    pub fn insn_jump_cmp<N: NumberType>(&mut self) {
-        let dest = self.read_location().get_32(self) as usize;
+    pub fn insn_jump_cmp<N: NumberType>(&mut self) -> Result<(), Error> {
+        let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
             panic!("Invalid jump target 0x{:04x}", dest)
         }
         let cmp_op = self.read_8();
 
-        let lhs = self.read_location().get_n::<N>(self);
-        let rhs = self.read_location().get_n::<N>(self);
+        let lhs = self.read_location()?.get_n::<N>(self);
+        let rhs = self.read_location()?.get_n::<N>(self);
 
         let should_branch = match cmp_op {
             0 => lhs < rhs,  //  < 0
@@ -80,5 +84,6 @@ impl CPU {
         if should_branch {
             self.program_counter = dest;
         }
+        Ok(())
     }
 }
