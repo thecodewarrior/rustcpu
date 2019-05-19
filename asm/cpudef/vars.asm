@@ -40,10 +40,9 @@ R29 = 29
 R30 = 30
 R31 = 31
 
+param_start = -8
 
-_location_const = 0b000
-_location_ram = 0b001
-_location_stack_ram = 0b010
-_location_register = 0b011
-_location_ram_at_register = 0b100
-_location_stack_ram_at_register = 0b101
+; Special Registers
+
+frame_base = 0
+stack = 1

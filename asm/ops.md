@@ -21,7 +21,7 @@ Combinations (`<loc> n => <reference>`):
 @>+% n => rom[ram[stack_ptr + registers[n]]]
 ```
 
-`<location>` = `| 8: type | 8/32: location |`
+`<location>` = `| 8: type | 8/32: location |` (wide locations always have `| 8 | 32 |` format)
 
 #### NOP - `0x0000`
 #### HALT - `0xffff`
@@ -80,6 +80,16 @@ Combinations (`<loc> n => <reference>`):
 
 #### Print newline - `0x0404`
 `| 0x0404 |`
+
+### Stack - `0x05..`
+
+#### Set stack - `0x0500`
+`| 0x0500 | value <wide read location> |`
+
+#### Push frame - `0x0501`
+`| 0x0500 | target <wide read location> |`
+
+#### Reserve frame - `0x0502`
 
 ### Debug - `0x0f..`
 

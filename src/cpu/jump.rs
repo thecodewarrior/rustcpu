@@ -8,7 +8,7 @@ impl CPU {
     pub fn insn_jump(&mut self) -> Result<(), Error> {
         let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
-            panic!("Invalid jump target 0x{:04x}", dest)
+            bail!("Invalid jump target 0x{:04x}", dest)
         }
         self.program_counter = dest;
         Ok(())
@@ -17,7 +17,7 @@ impl CPU {
     pub fn insn_jump_cmpzero<N: NumberType>(&mut self) -> Result<(), Error> {
         let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
-            panic!("Invalid jump target 0x{:04x}", dest)
+            bail!("Invalid jump target 0x{:04x}", dest)
         }
         let cmp_op = self.read_8();
 
@@ -30,7 +30,7 @@ impl CPU {
             3 => lhs >= N::zero(), // >= 0
             4 => lhs > N::zero(),  //  > 0
             5 => lhs != N::zero(), // != 0
-            _ => panic!("Unknown comparison {}", cmp_op),
+            _ => bail!("Unknown comparison {}", cmp_op),
         };
         if should_branch {
             self.program_counter = dest;
@@ -41,7 +41,7 @@ impl CPU {
     pub fn insn_jump_calc<N: NumberType>(&mut self) -> Result<(), Error> {
         let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
-            panic!("Invalid jump target 0x{:04x}", dest)
+            bail!("Invalid jump target 0x{:04x}", dest)
         }
         let cmp_op = self.read_8();
 
@@ -54,7 +54,7 @@ impl CPU {
             3 => lhs >= N::zero(), // >= 0
             4 => lhs > N::zero(),  //  > 0
             5 => lhs != N::zero(), // != 0
-            _ => panic!("Unknown comparison {}", cmp_op),
+            _ => bail!("Unknown comparison {}", cmp_op),
         };
         if should_branch {
             self.program_counter = dest;
@@ -65,7 +65,7 @@ impl CPU {
     pub fn insn_jump_cmp<N: NumberType>(&mut self) -> Result<(), Error> {
         let dest = self.read_location()?.get_32(self) as usize;
         if dest > self.program.data.len() {
-            panic!("Invalid jump target 0x{:04x}", dest)
+            bail!("Invalid jump target 0x{:04x}", dest)
         }
         let cmp_op = self.read_8();
 
@@ -79,7 +79,7 @@ impl CPU {
             3 => lhs >= rhs, // >= 0
             4 => lhs > rhs,  //  > 0
             5 => lhs != rhs, // != 0
-            _ => panic!("Unknown comparison {}", cmp_op),
+            _ => bail!("Unknown comparison {}", cmp_op),
         };
         if should_branch {
             self.program_counter = dest;

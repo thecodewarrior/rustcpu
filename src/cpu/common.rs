@@ -6,31 +6,35 @@ use crate::number_type::NumberType;
 use num_traits::PrimInt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use std::u32;
 use failure::Error;
 
 /// - `'_____` = Constant
 /// - `>_____` = RAM
-/// - `>+____` = Stack relative RAM
+/// - `^_____` = Frame relative RAM
 /// - `%_____` = Register
 /// - `@_____` = ROM (program memory)
+/// - `::____` = Special
 /// - `0b0000` = '
 /// - `0b0001` = >
-/// - `0b0010` = >+
+/// - `0b0010` = ^
 /// - `0b0011` = %
 /// - `0b0100` = >%
-/// - `0b0101` = >+%
+/// - `0b0101` = ^%
 /// - `0b0111` = @
 /// - `0b1000` = @>
-/// - `0b1001` = @>+
+/// - `0b1001` = @^
 /// - `0b1010` = @%
 /// - `0b1011` = @>%
-/// - `0b1100` = @>+%
+/// - `0b1100` = @^%
+/// - `0b1101` = ::
 #[derive(PartialEq, Eq)]
 pub enum Location {
     Constant(u32),
     Ram(u32),
     Rom(u32),
     Register(u32),
+    SpecialRegister(u32),
 }
 
 impl Debug for Location {
@@ -40,6 +44,7 @@ impl Debug for Location {
             Location::Ram(addr) => write!(f, ">{}", addr),
             Location::Rom(addr) => write!(f, "@{}", addr),
             Location::Register(reg) => write!(f, "%{}", reg),
+            Location::SpecialRegister(reg) => write!(f, "::{}", reg),
         }
     }
 }
@@ -51,6 +56,7 @@ impl Location {
             Location::Ram(addr) => cpu.memory.get_n(*addr),
             Location::Rom(addr) => cpu.program.get_n(*addr),
             Location::Register(reg) => N::from_u32(cpu.registers[*reg as usize]),
+            Location::SpecialRegister(reg) => N::from_u32(cpu.special_registers[*reg as usize]),
         }
     }
 
@@ -60,6 +66,7 @@ impl Location {
             Location::Ram(addr) => Ok(cpu.memory.set_n(*addr, value)),
             Location::Rom(addr) => Ok(cpu.program.set_n(*addr, value)),
             Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value.as_u32()),
+            Location::SpecialRegister(reg) => Ok(cpu.special_registers[*reg as usize] = value.as_u32()),
         }
     }
 
@@ -69,6 +76,7 @@ impl Location {
             Location::Ram(addr) => cpu.memory.get_8(*addr),
             Location::Rom(addr) => cpu.program.get_8(*addr),
             Location::Register(reg) => cpu.registers[*reg as usize] as u8,
+            Location::SpecialRegister(reg) => cpu.special_registers[*reg as usize] as u8,
         }
     }
 
@@ -78,6 +86,7 @@ impl Location {
             Location::Ram(addr) => Ok(cpu.memory.set_8(*addr, value)),
             Location::Rom(addr) => Ok(cpu.program.set_8(*addr, value)),
             Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value as u32),
+            Location::SpecialRegister(reg) => Ok(cpu.special_registers[*reg as usize] = value as u32),
         }
     }
 
@@ -87,6 +96,7 @@ impl Location {
             Location::Ram(addr) => cpu.memory.get_16(*addr),
             Location::Rom(addr) => cpu.program.get_16(*addr),
             Location::Register(reg) => cpu.registers[*reg as usize] as u16,
+            Location::SpecialRegister(reg) => cpu.special_registers[*reg as usize] as u16,
         }
     }
 
@@ -96,6 +106,7 @@ impl Location {
             Location::Ram(addr) => Ok(cpu.memory.set_16(*addr, value)),
             Location::Rom(addr) => Ok(cpu.program.set_16(*addr, value)),
             Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value as u32),
+            Location::SpecialRegister(reg) => Ok(cpu.special_registers[*reg as usize] = value as u32),
         }
     }
 
@@ -105,6 +116,7 @@ impl Location {
             Location::Ram(addr) => cpu.memory.get_32(*addr),
             Location::Rom(addr) => cpu.program.get_32(*addr),
             Location::Register(reg) => cpu.registers[*reg as usize] as u32,
+            Location::SpecialRegister(reg) => cpu.special_registers[*reg as usize] as u32,
         }
     }
 
@@ -114,24 +126,45 @@ impl Location {
             Location::Ram(addr) => Ok(cpu.memory.set_32(*addr, value)),
             Location::Rom(addr) => Ok(cpu.program.set_32(*addr, value)),
             Location::Register(reg) => Ok(cpu.registers[*reg as usize] = value),
+            Location::SpecialRegister(reg) => Ok(cpu.special_registers[*reg as usize] = value),
         }
     }
 
     pub fn get_offset(&self, cpu: &CPU, offset: u32) -> Result<u8, Error> {
         match self {
-            Location::Constant(_) => bail!("Can't get a constant with an offset"),
+            Location::Constant(value) => if offset > 3 {
+                bail!("can't get a constant with an offset of {}", offset)
+            } else { Ok((value >> (24 - 8*offset)) as u8) },
             Location::Ram(addr) => Ok(cpu.memory.get_8(*addr + offset)),
             Location::Rom(addr) => Ok(cpu.program.get_8(*addr + offset)),
-            Location::Register(_) => bail!("Can't get a register with an offset"),
+            Location::Register(reg) => if offset > 3 {
+                bail!("can't get a register with an offset of {}", offset)
+            } else { Ok((cpu.registers[*reg as usize] >> (8*offset)) as u8) },
+            Location::SpecialRegister(reg) => if offset > 3 {
+                bail!("can't get a special register with an offset of {}", offset)
+            } else { Ok((cpu.special_registers[*reg as usize] >> (8*offset)) as u8) },
         }
     }
 
     pub fn set_offset(&self, cpu: &mut CPU, offset: u32, value: u8) -> Result<(), Error> {
         match self {
-            Location::Constant(_) => bail!("Can't set a constant to value"),
+            Location::Constant(reg) => bail!("Can't set a constant to value"),
             Location::Ram(addr) => Ok(cpu.memory.set_8(*addr + offset, value)),
             Location::Rom(addr) => Ok(cpu.program.set_8(*addr + offset, value)),
-            Location::Register(_) => bail!("Can't set a register with an offset"),
+            Location::Register(reg) => if offset > 3 {
+                bail!("can't set a register with an offset of {}", offset)
+            } else {
+                cpu.registers[*reg as usize] = cpu.registers[*reg as usize]
+                    & !(0b1111_1111u32 << (8*offset)) | ((value as u32) << (8*offset));
+                Ok(())
+            },
+            Location::SpecialRegister(reg) => if offset > 3 {
+                bail!("can't set a special register with an offset of {}", offset)
+            } else {
+                cpu.special_registers[*reg as usize] = cpu.special_registers[*reg as usize]
+                    & !(0b1111_1111u32 << (8*offset)) | ((value as u32) << (8*offset));
+                Ok(())
+            },
         }
     }
 }
@@ -167,8 +200,18 @@ impl CPU {
     /// Reads a single value reference from the program
     ///
     pub fn read_location(&mut self) -> Result<Location, Error> {
-        let loc = self.read_8();
-        let stack = self.stack_ptr as u32;
+        let mut loc = self.read_8();
+        let wide = loc & 0b1000_000 != 0;
+        loc = loc & 0b0111_1111;
+        let frame = self.special_registers[SpecialRegister::FrameBase.index()];
+        let stack = self.special_registers[SpecialRegister::Stack.index()];
+        let mut read_local_8 = || {
+            if wide {
+                self.read_32() as u8
+            } else {
+                self.read_8()
+            }
+        };
         Ok(match loc {
             0b0000 => {
                 let value = self.read_32();
@@ -179,22 +222,36 @@ impl CPU {
                 Location::Ram(addr)
             }
             0b0010 => {
-                let addr = stack + self.read_32();
-                Location::Ram(addr)
+                let signed_64 = (self.read_32() as i32) as i64;
+                let addr = frame as i64 + signed_64;
+                if addr < 0 {
+                    bail!("negative address {}. Frame is {}, offset is {}.", addr, frame, signed_64)
+                }
+                if addr > u32::MAX as i64 {
+                    bail!("offset address {} is too large. Frame is {}, offset is {}.", addr, frame, signed_64)
+                }
+                Location::Ram(addr as u32)
             }
             0b0011 => {
-                let reg = self.read_register()? as u32;
+                let reg = read_local_8() as u32;
                 Location::Register(reg)
             }
             0b0100 => {
-                let reg = self.read_register()?;
-                let addr = self.registers[reg];
+                let reg = read_local_8();
+                let addr = self.registers[reg as usize];
                 Location::Ram(addr)
             }
             0b0101 => {
-                let reg = self.read_register()?;
-                let addr = stack + self.registers[reg];
-                Location::Ram(addr)
+                let reg = read_local_8();
+                let signed_64 = (self.registers[reg as usize] as i32) as i64;
+                let addr = (frame as i64 + signed_64);
+                if addr < 0 {
+                    bail!("negative address {}. Frame is {}, offset is {}.", addr, frame, signed_64)
+                }
+                if addr > u32::MAX as i64 {
+                    bail!("offset address {} is too large. Frame is {}, offset is {}.", addr, frame, signed_64)
+                }
+                Location::Ram(addr as u32)
             }
             0b0111 => {
                 let addr = self.read_32();
@@ -206,26 +263,48 @@ impl CPU {
                 Location::Rom(rom_addr)
             }
             0b1001 => {
-                let ram_addr = stack + self.read_32();
-                let rom_addr = self.memory.get_32(ram_addr);
+                let signed_64 = (self.read_32() as i32) as i64;
+                let ram_addr = (frame as i64 + signed_64);
+                if ram_addr < 0 {
+                    bail!("negative address {}. Frame is {}, offset is {}.", ram_addr, frame, signed_64)
+                }
+                if ram_addr > u32::MAX as i64 {
+                    bail!("offset address {} is too large. Frame is {}, offset is {}.", ram_addr, frame, signed_64)
+                }
+                let rom_addr = self.memory.get_32(ram_addr as u32);
                 Location::Rom(rom_addr)
             }
             0b1010 => {
-                let reg = self.read_register()?;
-                let addr = self.registers[reg];
+                let reg = read_local_8();
+                let addr = self.registers[reg as usize];
                 Location::Rom(addr)
             }
             0b1011 => {
-                let reg = self.read_register()?;
-                let ram_addr = self.registers[reg];
+                let reg = read_local_8();
+                let ram_addr = self.registers[reg as usize];
                 let rom_addr = self.memory.get_32(ram_addr);
                 Location::Rom(rom_addr)
             }
             0b1100 => {
-                let reg = self.read_register()?;
-                let ram_addr = stack + self.registers[reg];
-                let rom_addr = self.memory.get_32(ram_addr);
+                let reg = read_local_8();
+                let signed_64 = (self.registers[reg as usize] as i32) as i64;
+                let ram_addr = (frame as i64 + signed_64);
+                if ram_addr < 0 {
+                    bail!("negative address {}. Frame is {}, offset is {}.", ram_addr, frame, signed_64)
+                }
+                if ram_addr > u32::MAX as i64 {
+                    bail!("offset address {} is too large. Frame is {}, offset is {}.", ram_addr, frame, signed_64)
+                }
+                let rom_addr = self.memory.get_32(ram_addr as u32);
                 Location::Rom(rom_addr)
+            }
+            0b1101 => {
+                let reg = read_local_8() as u32;
+                Location::SpecialRegister(reg)
+            }
+            0b1110 => {
+                let addr = stack + self.read_32();
+                Location::Ram(addr)
             }
             _ => bail!("Unknown location {}", loc),
         })
@@ -277,6 +356,20 @@ impl CPU {
                 }
             }
         })
+    }
+}
+
+pub enum SpecialRegister {
+    FrameBase,
+    Stack
+}
+
+impl SpecialRegister {
+    pub fn index(&self) -> usize {
+        match self {
+            SpecialRegister::FrameBase => 0,
+            SpecialRegister::Stack => 1
+        }
     }
 }
 

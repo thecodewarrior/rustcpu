@@ -1,49 +1,44 @@
-current = 0
-half_current = 1
-testi = 2
-endi = 3
+main:
+    push '0
+    push '0
 
-move32 '2 -> >0
-move8 '4 -> %endi
-move8 '2 -> %current
+    loop:
+        .latest = 0
+        .index = 4
+        call 'get_fib -> ^.latest
+        print.u ^.latest
+        print_str
+        #str " \0"
+        calc.u add (^.index, '1) -> ^.index
+        jump 'loop
+    halt
 
-next_prime:
-    calc.u add (%current, '1) -> %current
-    calc.u add (%current, '1) -> %half_current
-    calc.u div (%half_current, '2) -> %half_current
+get_fib:
+    .i = param_start-4
 
-    move8 '0 -> %testi
+    jumpif.u ( ^.i, eq, '0 ) -> '.terminal
+    jumpif.u ( ^.i, eq, '1 ) -> '.terminal
+    jump '.recurse
+    .terminal:
+        return '1
+    .recurse:
+        .minus_one = 0
+        .minus_two = 4
+        push '0
+        push '0
 
-    print_str
-    #str "Testing \0"
-    print.u %current
-    print_str
-    #str ": \0"
+        calc.u sub (^.i, '1) -> ^.minus_one
+        calc.u sub (^.i, '2) -> ^.minus_two
 
-test_loop:
-    ;jumpif.u eqz ( >%testi ) -> 'success
+        push ^.minus_one
+        call 'get_fib -> ^.minus_one
+        drop '4
 
-    jumpif.u eqz ( %testi ) -> '.after_comma
-    print_str
-    #str ", \0"
-    .after_comma:
-    print.u >%testi
+        push ^.minus_two
+        call 'get_fib -> ^.minus_two
+        drop '4
 
-    jumpif.u eqz calc mod (%current, >%testi) -> 'failure
-    jumpif.u ( >%testi, geq, %half_current ) -> 'success
-    calc.u add (%testi, '4) -> %testi
-    jump 'test_loop
-
-failure:
-    print_nl
-    jump 'next_prime
-
-success:
-    print_str
-    #str " - prime\0"
-    print_nl
-
-    move32 %current -> >%endi
-    calc.u add (%endi, '4) -> %endi
-    jump 'next_prime
-halt
+        .sum = 8
+        push '0
+        calc.u add (^.minus_one, ^.minus_two) -> ^.sum
+        return ^.sum

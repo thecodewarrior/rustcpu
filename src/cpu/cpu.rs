@@ -10,7 +10,7 @@ pub struct CPU {
     pub program: Memory,
     pub memory: Memory,
     pub clock: u64,
-    pub(super) stack_ptr: usize,
+    pub(super) special_registers: [u32; 16],
     pub(super) program_counter: usize,
     pub(super) registers: [u32; 40],
 }
@@ -21,7 +21,7 @@ impl CPU {
             program: Memory::new(0),
             memory: Memory::new(2048),
             clock: 10,
-            stack_ptr: 0,
+            special_registers: [0; 16],
             program_counter: 0,
             registers: [0; 40],
         }
@@ -46,6 +46,7 @@ impl CPU {
         let insn = self.program.get_16(self.program_counter as u32);
         //        println!("counter: {}, 0x{:02x}", self.program_counter, insn);
         self.program_counter += 2;
+
         let insn_result = match insn {
             // instructions
             0x0000 => self.insn_nop(),
@@ -75,6 +76,13 @@ impl CPU {
             0x0402 => self.insn_print_block(),
             0x0403 => self.insn_print_str(),
             0x0404 => self.insn_print_nl(),
+
+            0x0500 => self.insn_call(),
+            0x0501 => self.insn_return_void(),
+            0x0502 => self.insn_return_value(),
+            0x0503 => self.insn_push(),
+            0x0504 => self.insn_drop(),
+            0x0505 => self.insn_pop(),
 
             // debug
             0x0f00 => self.insn_debug(),
